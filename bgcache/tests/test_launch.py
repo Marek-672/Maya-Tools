@@ -48,7 +48,9 @@ print("ok: a Windows folder like D:\\Program Files\\... only goes in the environ
 # 3) animBot's userSetup line hits the stand-in in the background Maya
 stub_first = wenv["PYTHONPATH"].split(os.pathsep)[0]
 r = subprocess.run([sys.executable, "-c", "import animBot; animBot.launch(); animBot.anything(1, 2)"],
-                   env={"PYTHONPATH": stub_first}, capture_output=True, text=True)
+                   env=dict({"PYTHONPATH": stub_first},
+                            **({"SYSTEMROOT": os.environ["SYSTEMROOT"]} if "SYSTEMROOT" in os.environ else {})),
+                   capture_output=True, text=True)
 assert r.returncode == 0 and "animBot skipped" in r.stdout, (r.stdout, r.stderr)
 assert "animbot" not in penv.get("PYTHONPATH", "").lower() or "stubs" not in penv["PYTHONPATH"]
 print("ok: animBot.launch() in the background Maya does nothing:", r.stdout.strip())
