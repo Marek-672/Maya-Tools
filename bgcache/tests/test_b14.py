@@ -28,7 +28,7 @@ for name, items in menus.items():
 assert "Sync test..." not in bar and "Sync test…" not in bar
 print("ok: bgcache: Push selected, Restart, Stop | View: Film gate, Show drawings, Keep on top, Sound section | "
       "Help: Self-test, Check for updates, About")
-tr = p[p.index("    def _build_transport(self):"):p.index("    # ---------------------------------------------------------------- studio updates")]
+tr = p[p.index("    def _build_transport(self):"):p.index("    # ---------------------------------------------------------------- updates")]
 assert "for b in (self.b_loop, self.b_sound, self.b_sync):" in tr
 print("ok: Loop, Sound and Sync sit with the playback buttons at the bottom")
 assert "QToolButton:checked { background: #3d6a8f; border-color: #8fc0e8;" in p

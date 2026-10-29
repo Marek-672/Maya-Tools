@@ -40,6 +40,7 @@ from bgcache import common, __version__
 from bgcache.widgets import FitLabel, FlowLayout, _checkbox_style, _icon, _tool
 
 Qt = QtCore.Qt
+_QAction = getattr(QtGui, "QAction", None) or QtWidgets.QAction     # QtGui in PySide6, QtWidgets in PySide2
 BAR_H = 12
 LRU_SIZE = 64
 GREEN, RED = QtGui.QColor(60, 140, 90), QtGui.QColor(180, 55, 55)
@@ -60,7 +61,6 @@ QMenu::item:disabled { color: #8a8d93; }
 QToolButton:disabled { color: #6a6a6a; }
 QToolButton::menu-indicator { image: none; }
 QToolButton#drawButton:checked { background: #b8662a; border-color: #e08a45; color: #fff4e8; font-weight: bold; }
-QToolButton#updateButton { background: #b8662a; border-color: #e08a45; color: #fff4e8; font-weight: bold; }
 QToolButton#pauseButton:checked { background: #7a5a1e; border-color: #d9a441; color: #fff4dc; font-weight: bold; }
 QPushButton { color: #cfcfcf; background: #343434; border: 1px solid #4a4a4a;
               border-radius: 3px; font-size: 11px; padding: 2px 6px; }
@@ -286,8 +286,6 @@ class Player(_continuity_part(), QtWidgets.QWidget):
         if not self.sync:
             self.send_time()   # tell Maya's side sync is off (doesn't move Maya)
         self._poll()
-        if self._releases_folder():
-            QtCore.QTimer.singleShot(4000, lambda: self.check_for_update(quiet=True))
 
     def _init_playback(self):
         """Playback state: frame cache, position, direction, loop, input."""
@@ -442,9 +440,11 @@ class Player(_continuity_part(), QtWidgets.QWidget):
         self.b_help, help_menu = self._menu_word(row, "Help", "Self-test, updates, version")
         help_menu.addAction("Self-test", lambda: self._maya_cmd(
             "selftest", "Self-test running: the report prints in your Maya's Script Editor in about a minute"))
+        self.help_menu = help_menu
         self._update_item = help_menu.addAction("Check for updates", self.check_for_update)
-        self._update_item.setVisible(bool(self._releases_folder()))
-        help_menu.addSeparator()
+        self._update_item.setVisible(bool(self._update_source()))
+        self._update_lines = []        # what the last check found, shown under it
+        self._update_sep = help_menu.addSeparator()
         about = help_menu.addAction("About bgcache %s" % __version__)
         about.setEnabled(False)
 
@@ -465,8 +465,7 @@ class Player(_continuity_part(), QtWidgets.QWidget):
         row.addWidget(self.b_draw)
 
     def _build_cache_buttons(self, row):
-        """Refresh, Reload scene and Re-render all together, then Pause, and
-        the Update button (hidden until an update is found)."""
+        """Refresh, Reload scene and Re-render all together, then Pause."""
         self.b_refresh = _tool("Refresh", tip="Send your viewport settings, hidden/shown objects, display "
                                               "layers, image planes and GPU Override from your Maya, and re-render")
         self.b_refresh.clicked.connect(lambda: self._maya_cmd("refresh", "Refresh sent to your Maya"))
@@ -484,12 +483,6 @@ class Player(_continuity_part(), QtWidgets.QWidget):
         self.b_pause.setCheckable(True)
         self.b_pause.clicked.connect(self.set_paused)
         row.addWidget(self.b_pause)
-        self.b_update = _tool("Update available", tip="A newer bgcache is in the studio's releases folder")
-        self.b_update.setObjectName("updateButton")
-        self.b_update.clicked.connect(self.offer_update)
-        self.b_update.hide()
-        self._update_found = None
-        row.addWidget(self.b_update)
 
     def _build_playback_toggles(self):
         """Loop, Sound and Sync: built with the toolbar, placed on the
@@ -553,50 +546,125 @@ class Player(_continuity_part(), QtWidgets.QWidget):
         row.addWidget(self.range_label, 1)
         return tr
 
-    # ---------------------------------------------------------------- studio updates
-    def _releases_folder(self):
-        return (self.cfg or {}).get("releases_folder") or ""
+    # ---------------------------------------------------------------- updates
+    # 0.9.0b2: only when you ask (Help > Check for updates). Nothing checks or
+    # installs by itself, and there's no Update button: the answer shows in the
+    # Help menu. Studio builds look in the profile's releases folder, others
+    # on GitHub (bgcache's only network use, and only on that click).
+    def _update_source(self):
+        cfg = self.cfg or {}
+        if cfg.get("releases_folder"):
+            return "folder"
+        if cfg.get("github_releases"):
+            return "github"
+        return None
 
-    def check_for_update(self, quiet=False):
-        """b13: a newer bgcache_<version>.zip in the profile's releases folder
-        shows an orange Update button. quiet: the check when the player opens."""
-        folder = self._releases_folder()
-        if not folder:
+    def check_for_update(self):
+        source = self._update_source()
+        if not source:
             return None
         from bgcache import update
-        if not os.path.isdir(folder):
-            if not quiet:
-                self._flash_message("Can't see the releases folder %s" % folder, 5.0)
-            return None
-        found = update.newer_release(folder, __version__)
-        self._update_found = found
-        if found:
-            self.b_update.setText("Update to %s" % found[0])
-            self.b_update.show()
-            if not quiet:
-                self.offer_update()
-        else:
-            self.b_update.hide()
-            if not quiet:
-                self._flash_message("You have the latest bgcache (%s)" % __version__, 3.0)
-        return found
+        if source == "folder":
+            self._update_checked(update.check_folder(self.cfg["releases_folder"], __version__))
+            return self._update_result
+        from bgcache import system
+        edition = "full" if self.has_continuity else "simple"
+        self._show_update_lines([("Checking for updates...", None)])
+        self._run_in_background(lambda: update.check_github(self.cfg["github_releases"], __version__,
+                                                            system.NAME, edition), self._update_checked)
+        return None
 
-    def offer_update(self):
-        if not self._update_found:
-            return
-        version, path = self._update_found
+    def _run_in_background(self, work, done):
+        """work() in a thread (a network call must not freeze the player),
+        then done(result) back here."""
+        import threading
+        box = {}
+
+        def run():
+            try:
+                box["result"] = work()
+            except Exception as error:       # reported as the check's answer, never raised
+                box["result"] = {"state": "error", "message": str(error)}
+        thread = threading.Thread(target=run, daemon=True)
+        thread.start()
+        timer = QtCore.QTimer(self)
+
+        def poll():
+            if not thread.is_alive():
+                timer.stop()
+                done(box.get("result") or {"state": "error", "message": "no answer"})
+        timer.timeout.connect(poll)
+        timer.start(50)
+
+    def _update_checked(self, result):
+        self._update_result = result
+        state = result.get("state")
+        if state == "newer":
+            lines = [("Latest: %s (you have %s)" % (result["version"], __version__), None)]
+            if result.get("notes"):
+                lines.append(("What's new in %s" % result["version"], self.show_update_notes))
+            lines.append(("Update to %s and restart" % result["version"], self.update_and_restart))
+        elif state == "latest":
+            lines = [("You have the latest (%s)" % __version__, None)]
+        else:
+            lines = [("Couldn't check: %s" % result.get("message", "unknown error"), None)]
+            if result.get("page"):
+                lines.append(("Open the download page", lambda: self._open_url(result["page"])))
+        self._show_update_lines(lines)
+        QtCore.QTimer.singleShot(0, self.b_help.showMenu)     # show the answer where you asked
+
+    def _show_update_lines(self, lines):
+        """Replace the lines under Check for updates: (text, slot); no slot = a note."""
+        for act in self._update_lines:
+            self.help_menu.removeAction(act)
+        self._update_lines = []
+        for text, slot in lines:
+            act = _QAction("    " + text, self.help_menu)
+            if slot is None:
+                act.setEnabled(False)
+            else:
+                act.triggered.connect(lambda checked=False, fn=slot: fn())
+            self.help_menu.insertAction(self._update_sep, act)
+            self._update_lines.append(act)
+
+    def _open_url(self, url):
+        QtGui.QDesktopServices.openUrl(QtCore.QUrl(url))
+
+    def show_update_notes(self):
+        result = getattr(self, "_update_result", None) or {}
         box = QtWidgets.QMessageBox(self)
-        box.setWindowTitle("bgcache update")
-        box.setText("Update bgcache %s to %s?" % (__version__, version))
-        box.setInformativeText("Your Maya stays open. bgcache stops, updates and starts again "
-                               "(the background Maya reloads your scene and re-caches).")
+        box.setWindowTitle("What's new in bgcache %s" % result.get("version", ""))
+        box.setText(result.get("notes") or "")
+        if hasattr(Qt, "MarkdownText"):            # the release notes are Markdown (Qt 5.14+)
+            box.setTextFormat(Qt.MarkdownText)
         go = box.addButton("Update and restart", QtWidgets.QMessageBox.AcceptRole)
-        box.addButton("Not now", QtWidgets.QMessageBox.RejectRole)
+        box.addButton("Close", QtWidgets.QMessageBox.RejectRole)
         box.exec_() if hasattr(box, "exec_") else box.exec()
         if box.clickedButton() is go:
-            self.send_cmd("update", path=path)
-            self._close_quietly = True
-            self._flash_message("Updating bgcache to %s: it reopens in a moment" % version, 10.0)
+            self.update_and_restart()
+
+    def update_and_restart(self):
+        """Your Maya stops bgcache, swaps in the new copy (the old one is
+        kept in .bgcache_backups) and starts it again, without restarting Maya."""
+        result = getattr(self, "_update_result", None) or {}
+        if result.get("state") != "newer":
+            return
+        if result.get("zip"):                     # studio releases folder
+            self._send_update(result["version"], result["zip"])
+            return
+        from bgcache import update
+        self._flash_message("Downloading bgcache %s..." % result["version"], 30.0)
+        folder = self.p.get("tmp") or os.path.join(self.session, "tmp")
+        self._run_in_background(lambda: {"state": "ok", "path": update.download(result["zip_url"], folder,
+                                                                                result["zip_name"])},
+                                lambda got: self._send_update(result["version"], got.get("path"))
+                                if got.get("state") == "ok" else
+                                self._flash_message("Update didn't download: %s" % got.get("message"), 8.0))
+
+    def _send_update(self, version, path):
+        self.send_cmd("update", path=path)
+        self._close_quietly = True
+        self._flash_message("Updating bgcache to %s: it reopens in a moment" % version, 10.0)
 
     def _window_height(self):
         return 28 + 40 + 600 + BAR_H + 40 + self._continuity_height()

@@ -99,10 +99,13 @@ DEFAULT = {
     # render view is made: "module.function" (given the panel name, or no
     # arguments). Empty: nothing.
     "before_playblast": "",
-    # Studio only: a folder of release zips (bgcache_<version>.zip). The
-    # player offers "Update and restart" when a newer one is there. Empty:
-    # no update check.
+    # Updates, only when the artist asks (Help > Check for updates):
+    # releases_folder: a studio folder of release zips (bgcache_<version>.zip);
+    # when set, it's the only place looked at.
+    # github_releases: the GitHub repository whose bgcache releases are
+    # checked otherwise (the check's only network use). Empty: no check.
     "releases_folder": "",
+    "github_releases": "Marek-672/Maya-Tools",
 }
 
 _cache = {"key": None, "profile": None, "source": None}

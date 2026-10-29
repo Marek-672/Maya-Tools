@@ -47,7 +47,8 @@ and can be used in the other templates too.
 | `background_viewport_renderer` | The hidden Maya draws the cache with the same viewport renderer as your shot camera's view: Viewport 2.0, plus your studio's render override if the view uses one. `false`: always Maya's standard Viewport 2.0. | `true` |
 | `before_playblast` | Your studio's own playblast set-up, run in the hidden Maya once its render view is made: `"module.function"` (called with the panel name, or with no arguments). | `""` |
 | `viewport_plugins` | Plug-ins that provide your studio's viewport render override, loaded in the hidden Maya (plug-ins with "viewport" in their name are found by themselves). | `[]` |
-| `releases_folder` | Studio only: a folder of release zips (`bgcache_<version>.zip`, `bgcache/` at the top). When a newer one is there, the player offers **Update and restart** (no Maya restart, no installer). The installed copy must be in a folder the artist can write to (the drag-and-drop install is). Empty: no update check. | `""` |
+| `releases_folder` | Studio only: a folder of release zips (`bgcache_<version>.zip`, `bgcache/` at the top). **Help > Check for updates** looks here (only when the artist clicks it: nothing checks or installs by itself) and offers **Update and restart** (no Maya restart, no installer). When set, it's the only place looked at. The installed copy must be in a folder the artist can write to (the drag-and-drop install is). | `""` |
+| `github_releases` | Without a releases folder, **Help > Check for updates** asks this GitHub repository for the newest bgcache release (bgcache's only network use, and only on that click). Set it to `""` to switch the check off, e.g. on machines without internet. | `"Marek-672/Maya-Tools"` |
 | `ffmpeg` | ffmpeg's location, if it isn't on the PATH (only needed for movies and for sound at a different sample rate). | `""` |
 
 ## Checking a profile without Maya

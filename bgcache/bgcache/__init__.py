@@ -15,11 +15,12 @@ Three pieces:
     continuity/    add-on (bgcache Full): neighbour shots before and after
                    yours, each department's footage. Leave the folder out
                    for bgcache Simple.
-    update.py      studio updates from the profile's releases_folder
+    update.py      Help > Check for updates: the profile's releases_folder,
+                   or GitHub releases; Update and restart
     install.py     one-step shelf button: import bgcache.install; bgcache.install.shelf()
 
 Usage, inside your animation Maya:
     import bgcache.controller as bgc
     bgc.shelf_click()
 """
-__version__ = "0.9.0b1"
+__version__ = "0.9.0b2"

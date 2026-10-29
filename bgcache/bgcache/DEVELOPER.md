@@ -33,7 +33,7 @@ test and build it.
 | `controller_refplane.py` | `RefPlaneMixin`: the player's reference movie as an image plane in your Maya. |
 | `scene.py` | Plain functions that read your scene and Maya: cameras, viewport settings and renderer, image planes, sound, GPU Override, path curves, anim curve data, where Maya and mayapy are, the hidden Maya's preferences folder. No state, except `DISPLAY_SOURCE`. |
 | `hotkeys.py` | Reads your Maya hotkeys, so the player's keys match. |
-| `install.py`, `update.py` | Shelf setup; the studio's Update and restart. |
+| `install.py`, `update.py` | Shelf setup; Help > Check for updates (the studio's releases folder, or GitHub releases: the only network code) and Update and restart. |
 | `selftest.py` | Help > Self-test (runs in both Mayas). |
 
 Before 0.8.0b21 everything above (except hotkeys, install, update, selftest)

@@ -1,16 +1,22 @@
-"""Studio updates (0.8.0b13): the pipeline profile's "releases_folder" holds
-release zips (bgcache_<version>.zip, bgcache/ at the top, as build_release.py
-makes them). The player looks there when it opens and from bgcache > Check
-for updates; "Update and restart" asks your Maya to:
+"""Updates, only when you ask (0.9.0b2): Help > Check for updates in the
+player. Nothing checks by itself and nothing installs by itself.
 
+Where it looks:
+  - studio builds: the pipeline profile's "releases_folder", holding release
+    zips (bgcache_<version>.zip, bgcache/ at the top, as build_studio.py
+    makes them);
+  - everyone else: the GitHub releases of the profile's "github_releases"
+    repository (tags bgcache-v<version>, zips bgcache-<version>-<system>-
+    <edition>.zip). That's bgcache's only network use, and only on that click.
+
+"Update and restart" asks your Maya to:
   1. stop bgcache and switch off this copy's callbacks (controller.unload),
   2. copy the installed bgcache folder to .bgcache_backups beside it,
   3. put the new bgcache in its place (the profile.json goes with the zip;
      a zip without one keeps the installed one),
   4. forget the old code in this Maya and start the new copy.
 
-No restart of Maya, no installer to drag. Nothing here runs unless the
-profile names a releases folder.
+No restart of Maya, no installer to drag.
 """
 import glob
 import os
@@ -89,8 +95,8 @@ def install_over(zip_path, package_dir, log=print):
                 archive.extractall(tmp)
         except (IOError, OSError, zipfile.BadZipfile) as error:
             raise RuntimeError("Couldn't read %s: %s" % (zip_path, error))
-        source = os.path.join(tmp, "bgcache")
-        if not os.path.isfile(os.path.join(source, "controller.py")):
+        source = _package_in(tmp)
+        if not source:
             raise RuntimeError("%s doesn't look like a bgcache release (no bgcache/controller.py inside)."
                                % zip_path)
         old, new = _version_of(package_dir), _version_of(source)
@@ -115,6 +121,121 @@ def install_over(zip_path, package_dir, log=print):
         return old, new, backup
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
+
+
+def _package_in(folder):
+    """The bgcache package inside an unpacked release: bgcache/ at the top
+    (releases folder zips) or <name>/module/scripts/bgcache (the downloads
+    on GitHub, as build_release.py makes them). None if neither."""
+    for path in [os.path.join(folder, "bgcache")] + sorted(
+            glob.glob(os.path.join(folder, "*", "module", "scripts", "bgcache"))):
+        if os.path.isfile(os.path.join(path, "controller.py")):
+            return path
+    return None
+
+
+# ---------------------------------------------------------------- GitHub
+TAG_PREFIX = "bgcache-v"
+
+
+def _plain_network_error(error):
+    """A network failure in words an artist can act on."""
+    code = getattr(error, "code", None)
+    text = str(getattr(error, "reason", "") or error)
+    if code == 404:
+        return "the releases page can't be found (it may not be public yet)"
+    if code in (403, 429):
+        return "GitHub is busy right now (too many checks); try again later"
+    if "CERTIFICATE" in text.upper():
+        return "this Maya's Python can't verify GitHub's certificate"
+    if code:
+        return "GitHub answered with an error (%s)" % code
+    return "no connection to GitHub (%s)" % text[:80]
+
+
+def _get(url, timeout, accept="application/vnd.github+json"):
+    import urllib.request
+    request = urllib.request.Request(url, headers={"Accept": accept, "User-Agent": "bgcache"})
+    return urllib.request.urlopen(request, timeout=timeout)
+
+
+def github_releases(repo, timeout=8.0):
+    """bgcache's published releases on GitHub, newest first: dicts with
+    version, notes, page and assets {file name: download url}. Raises
+    RuntimeError with a plain message when GitHub can't be reached."""
+    import json
+    try:
+        with _get("https://api.github.com/repos/%s/releases?per_page=50" % repo, timeout) as answer:
+            data = json.loads(answer.read().decode("utf-8"))
+    except Exception as error:     # urllib's many error types: all become one plain message
+        raise RuntimeError(_plain_network_error(error))
+    out = []
+    for release in data if isinstance(data, list) else []:
+        tag = release.get("tag_name") or ""
+        if release.get("draft") or not tag.startswith(TAG_PREFIX):
+            continue                # drafts, and other tools' releases in the same repository
+        out.append({"version": tag[len(TAG_PREFIX):], "notes": release.get("body") or "",
+                    "page": release.get("html_url") or "",
+                    "assets": {a.get("name"): a.get("browser_download_url")
+                               for a in release.get("assets") or []}})
+    out.sort(key=lambda r: version_key(r["version"]), reverse=True)
+    return out
+
+
+def check_github(repo, current, system_name, edition, timeout=8.0):
+    """What Help > Check for updates shows, from GitHub: a dict with state
+    "newer" (and version, notes, page, zip_url, zip_name), "latest" or
+    "error" (and message, page)."""
+    page = "https://github.com/%s/releases" % repo
+    try:
+        found = github_releases(repo, timeout)
+    except RuntimeError as error:
+        return {"state": "error", "message": str(error), "page": page}
+    if not found:
+        return {"state": "error", "message": "no bgcache releases there yet", "page": page}
+    newest = found[0]
+    if version_key(newest["version"]) <= version_key(current):
+        return {"state": "latest", "version": current, "page": page}
+    name = "bgcache-%s-%s-%s.zip" % (newest["version"], system_name, edition)
+    url = newest["assets"].get(name)
+    if not url:
+        return {"state": "error", "page": newest["page"] or page,
+                "message": "%s is out, but without a %s download" % (newest["version"], name)}
+    return {"state": "newer", "version": newest["version"], "notes": newest["notes"],
+            "page": newest["page"] or page, "zip_url": url, "zip_name": name}
+
+
+def check_folder(folder, current):
+    """The same answer as check_github, from a studio releases folder."""
+    if not os.path.isdir(folder):
+        return {"state": "error", "message": "can't see the releases folder %s" % folder}
+    found = newer_release(folder, current)
+    if not found:
+        return {"state": "latest", "version": current}
+    return {"state": "newer", "version": found[0], "zip": found[1], "notes": ""}
+
+
+def download(url, dest_folder, name, timeout=60.0):
+    """Save a release zip; returns its path. Raises RuntimeError (plain)."""
+    os.makedirs(dest_folder, exist_ok=True)
+    path = os.path.join(dest_folder, name)
+    part = path + ".part"
+    try:
+        answer = _get(url, timeout, accept="application/octet-stream")
+    except Exception as error:     # urllib's many error types: one plain message
+        raise RuntimeError(_plain_network_error(error))
+    try:
+        with answer, open(part, "wb") as out:
+            shutil.copyfileobj(answer, out)
+        os.replace(part, path)
+    except Exception as error:     # cut off or disk full: no half file left behind
+        if os.path.exists(part):
+            os.remove(part)
+        raise RuntimeError("the download didn't finish (%s)" % error)
+    with zipfile.ZipFile(path) as archive:
+        if not any(n.endswith("bgcache/controller.py") for n in archive.namelist()):
+            raise RuntimeError("the download isn't a bgcache release")
+    return path
 
 
 def _copy_icons(package_dir):

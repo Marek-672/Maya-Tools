@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.9.0 beta 2
+
+- **Updates only when you ask:** Help > Check for updates looks for a newer
+  BGCache (on GitHub, or in a studio's releases folder) and shows the answer
+  right in the Help menu: the latest version and yours, What's new, and
+  Update and restart, which installs it in the same Maya and keeps your old
+  copy. Nothing checks or installs by itself, and BGCache goes online only on
+  that click. The orange Update button is gone.
+- **Fixed:** the Simple edition's player could fail as its window opened.
+
 ## 0.9.0 beta 1 (first public release)
 
 The Simple edition (cache, player, drawing) for everyone. Changes since the

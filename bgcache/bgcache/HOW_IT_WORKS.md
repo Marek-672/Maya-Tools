@@ -2,7 +2,7 @@
 
 (Where each part lives in the code: DEVELOPER.md, next to this file.)
 
-For pipeline and technical teams. In short: **three local processes that talk only through small files in a per-session temp folder.** There's no network traffic, no sockets, no commandPort and no server, and your scene file is never saved.
+For pipeline and technical teams. In short: **three local processes that talk only through small files in a per-session temp folder.** There's no network traffic, no sockets, no commandPort and no server, and your scene file is never saved. (The one exception: when an artist chooses **Help > Check for updates** outside a studio, the player asks GitHub for the latest release. Studio builds look in the studio's releases folder instead, and a profile with an empty `github_releases` never goes online.)
 
 ```
  your Maya (controller.py)                hidden Maya (worker.py)             player (mayapy, player.py)

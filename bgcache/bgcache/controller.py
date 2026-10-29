@@ -249,6 +249,7 @@ class Controller(RefreshMixin, GpuRescueMixin, EditsMixin, SyncMixin, RefPlaneMi
             # (follow your Maya, always, or never)
             "background_gpu": gpu_on, "gpu_reason": gpu_reason,
             "releases_folder": profile.get("releases_folder") or "",
+            "github_releases": profile.get("github_releases") or "",
             "before_playblast": profile.get("before_playblast") or "",
             "install_dir": os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
             "hide": bool(hide_background),

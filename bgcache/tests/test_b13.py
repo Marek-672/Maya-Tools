@@ -92,13 +92,13 @@ c = _source.source("controller")
 assert 'elif cmd == "update":' in c and "update.update_and_restart(path)" in c
 assert '"releases_folder": profile.get("releases_folder") or "",' in c
 p = read("bgcache", "player.py")
-assert "def check_for_update(self, quiet=False):" in p and '"Update and restart"' in p
-assert 'self.check_for_update(quiet=True)' in p and 'self.send_cmd("update", path=path)' in p
+assert "def check_for_update(self):" in p and '"Update and restart"' in p     # 0.9.0b2: only when asked
+assert 'self.send_cmd("update", path=path)' in p
 studio = os.path.join(REPO, "studio_private", "profile.json")
 if os.path.isfile(studio):                       # the studio source only, not the public copy
     pr = json.load(open(studio))
     assert pr["releases_folder"] and pr.get("background_gpu", "follow") == "follow"
-print("ok: the player checks the studio releases folder when it opens and from bgcache > Check for updates; "
+print("ok: Help > Check for updates looks in the studio releases folder; "
       "Update and restart: stop, swap, start the new copy in the same Maya")
 
 # ---- the player opens before your scene is copied
