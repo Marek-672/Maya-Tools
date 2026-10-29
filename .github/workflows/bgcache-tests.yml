@@ -14,9 +14,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        # GitHub's Mac machines aren't given to this private repository (the
+        # jobs wait, then get cancelled, and the run shows as failed). They
+        # run once the repository is public.
+        os: ${{ fromJSON(github.event.repository.private && '["ubuntu-latest", "windows-latest"]' || '["ubuntu-latest", "windows-latest", "macos-latest"]') }}
         python: ["3.10", "3.13"]     # Maya 2024 uses 3.10, Maya 2027 uses 3.13
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
