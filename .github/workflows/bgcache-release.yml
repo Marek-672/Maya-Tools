@@ -1,0 +1,55 @@
+name: BGCache release
+
+# Builds the BGCache downloads and makes a DRAFT release with them. Nothing
+# is public until you open the draft on the Releases page and press Publish.
+#
+# Start it either way:
+#   - Actions tab > "BGCache release" > Run workflow (type the version), or
+#   - push a tag named bgcache-v<version>, e.g. bgcache-v0.9.0b1.
+# The release text comes from .github/release-notes/bgcache-<version>.md.
+on:
+  push:
+    tags: ["bgcache-v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version, as in bgcache/bgcache/__init__.py (e.g. 0.9.0b1)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Work out the version
+        id: v
+        shell: bash
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then v="${{ github.event.inputs.version }}"; else v="${GITHUB_REF_NAME#bgcache-v}"; fi
+          code=$(python -c "import re;print(re.search(r'__version__ = \"(.+?)\"', open('bgcache/bgcache/__init__.py').read()).group(1))")
+          if [ "$v" != "$code" ]; then echo "::error::Asked for $v but the code says $code"; exit 1; fi
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+      - name: Run the tests
+        working-directory: bgcache
+        run: python tests/run_tests.py
+      - name: Build the downloads
+        working-directory: bgcache
+        run: python tools/build_release.py ../dist
+      - name: Make the draft release (Simple edition only)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          v="${{ steps.v.outputs.version }}"
+          notes=".github/release-notes/bgcache-$v.md"
+          [ -f "$notes" ] || { echo "::error::No release notes in $notes"; exit 1; }
+          pre=""; case "$v" in *a*|*b*|*rc*) pre="--prerelease";; esac
+          gh release create "bgcache-v$v" dist/bgcache-$v-*-simple.zip \
+            --draft $pre --target "$GITHUB_SHA" \
+            --title "BGCache $v" --notes-file "$notes"
