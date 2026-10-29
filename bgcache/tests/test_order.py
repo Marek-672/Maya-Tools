@@ -3,7 +3,7 @@ TESTS = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(TESTS)
 import sys, types, os, json, tempfile
 from unittest import mock
-home = tempfile.mkdtemp(); os.environ["HOME"] = home
+home = tempfile.mkdtemp(); os.environ["HOME"] = os.environ["USERPROFILE"] = home
 qt = types.ModuleType("PySide2"); qc = mock.MagicMock(); qg = mock.MagicMock()
 qt.QtCore, qt.QtGui = qc, qg
 sys.modules.update({"PySide2": qt, "PySide2.QtCore": qc, "PySide2.QtGui": qg})

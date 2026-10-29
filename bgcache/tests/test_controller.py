@@ -4,7 +4,7 @@ REPO = os.path.dirname(TESTS)
 import sys, types, os, json, time
 exec(open(os.path.join(TESTS, "test_sync.py")).read().split("sys.path.insert")[0])   # Maya/Qt stubs + temp root
 from unittest import mock
-os.environ["HOME"] = os.environ["BGCACHE_ROOT"]
+os.environ["HOME"] = os.environ["USERPROFILE"] = os.environ["BGCACHE_ROOT"]
 sys.path.insert(0, REPO)
 qc.QCoreApplication = types.SimpleNamespace(processEvents=lambda: None)
 vis = {"|char|geo": True, "|prop": True, "|animVis": True}

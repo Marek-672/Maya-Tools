@@ -3,6 +3,7 @@ import _source  # noqa: E402  (tests/_source.py)
 TESTS = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(TESTS)
 import sys, types, os, time, tempfile, shutil
+APP_DIR_BEFORE = os.environ.get("MAYA_APP_DIR")      # yours, if your system sets it
 exec(open(os.path.join(TESTS, "test_sync.py")).read().split("sys.path.insert")[0])
 sys.path.insert(0, REPO)
 from unittest import mock
@@ -39,7 +40,7 @@ env = c._worker_env()
 assert env["MAYA_APP_DIR"] == app
 assert os.path.join(user, "scripts") in env["PYTHONPATH"] and os.path.join(user, "scripts") in env["MAYA_SCRIPT_PATH"]
 assert os.path.join(user, "modules") in env["MAYA_MODULE_PATH"] and os.path.join(user, "plug-ins") in env["MAYA_PLUG_IN_PATH"]
-assert env["MAYA_DISABLE_CIP"] == env["MAYA_NO_HOME"] == "1" and "MAYA_APP_DIR" not in os.environ
+assert env["MAYA_DISABLE_CIP"] == env["MAYA_NO_HOME"] == "1" and os.environ.get("MAYA_APP_DIR") == APP_DIR_BEFORE
 print("ok: background env: MAYA_APP_DIR is its own; your scripts, modules, plug-ins still on its paths; no first-run prompts")
 
 # the background Maya writing to ITS prefs can't touch yours

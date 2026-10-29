@@ -4,7 +4,7 @@ example studio profile with the sequence as a folder."""
 import os, sys, json, tempfile, shutil
 TESTS = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(TESTS)
-home = tempfile.mkdtemp(); os.environ["HOME"] = home
+home = tempfile.mkdtemp(); os.environ["HOME"] = os.environ["USERPROFILE"] = home
 os.environ.pop("BGCACHE_PROFILE", None)
 import types
 from unittest import mock
@@ -12,6 +12,7 @@ qt = types.ModuleType("PySide2"); qt.QtCore = mock.MagicMock(); qt.QtGui = mock.
 sys.modules.update({"PySide2": qt, "PySide2.QtCore": qt.QtCore, "PySide2.QtGui": qt.QtGui})
 sys.path.insert(0, REPO)
 from bgcache import profile as pf
+N = lambda p: os.path.splitdrive(os.path.normpath(p))[1].replace("\\", "/")   # compare paths the same way on Windows
 from bgcache.continuity import resolver as cr, reel
 
 def use(path):
@@ -28,12 +29,12 @@ assert pf.source() == "built-in generic profile" and prof["shot_folder"] == ""
 assert pf.parse_shot("/projects/BIRDS/sq050_0472/maya/scenes/x.mb") is None
 assert cr.get_departments() == [] and reel.department_order() == []
 proj = os.path.join(home, "projects", "walk")
-assert pf.drawings_root(os.path.join(proj, "scenes", "walk_v012.mb"), proj) == os.path.join(proj, "bgcache", "walk")
-assert pf.drawings_root(os.path.join(proj, "scenes", "walk.v3.ma"), proj) == os.path.join(proj, "bgcache", "walk")
-assert pf.drawings_root("/elsewhere/run_V004.mb", proj) == "/elsewhere/bgcache/run"
-assert pf.drawings_root("/elsewhere/run_V004.mb", None) == "/elsewhere/bgcache/run"
-assert pf.drawings_root(os.path.join(proj + "_other", "a.mb"), proj) == os.path.join(proj + "_other", "bgcache", "a")
-assert pf.drawings_root("", proj) == os.path.join(home, ".bgcache", "drawings", "untitled")
+assert N(pf.drawings_root(os.path.join(proj, "scenes", "walk_v012.mb"), proj)) == N(os.path.join(proj, "bgcache", "walk"))
+assert N(pf.drawings_root(os.path.join(proj, "scenes", "walk.v3.ma"), proj)) == N(os.path.join(proj, "bgcache", "walk"))
+assert N(pf.drawings_root("/elsewhere/run_V004.mb", proj)) == N("/elsewhere/bgcache/run")
+assert N(pf.drawings_root("/elsewhere/run_V004.mb", None)) == N("/elsewhere/bgcache/run")
+assert N(pf.drawings_root(os.path.join(proj + "_other", "a.mb"), proj)) == N(os.path.join(proj + "_other", "bgcache", "a"))
+assert N(pf.drawings_root("", proj)) == N(os.path.join(home, ".bgcache", "drawings", "untitled"))
 assert pf.scene_stem("v001.mb") == "v001" and pf.scene_stem("my shot v2.mb") == "my_shot"
 print("ok: no profile: no shots, no departments; drawings in <project>/bgcache/<scene> (version left out), else next to the scene")
 info_mov = {"source_type": "single_movie", "source_path": "/x/a.mov"}
@@ -45,7 +46,7 @@ use(os.path.join(TESTS, "fixtures", "studio_profile.json"))
 assert pf.parse_shot("/projects/BIRDS/sq050_0472/maya/scenes/x.mb") == ("BIRDS", "sq050_0472", "sq050")
 assert pf.parse_shot("/projects/BIRDS/sq050_0472") == ("BIRDS", "sq050_0472", "sq050")
 assert pf.parse_shot("/home/me/x.mb") is None and pf.parse_shot("/projects/BIRDS") is None
-assert pf.drawings_root("/projects/BIRDS/sq050_0472/maya/scenes/x.mb", "/projects/BIRDS/sq050_0472/maya") == "/projects/BIRDS/sq050_0472/maya/bgcache"
+assert N(pf.drawings_root("/projects/BIRDS/sq050_0472/maya/scenes/x.mb", "/projects/BIRDS/sq050_0472/maya")) == N("/projects/BIRDS/sq050_0472/maya/bgcache")
 assert [d["name"] for d in cr.get_departments()] == ["P", "WP", "shoco", "lighting", "editorial"]
 assert reel.department_order() == ["P", "WP", "shoco", "editorial", "lighting"]
 print("ok: studio profile: /projects/<show>/<shot>, sequence from the shot name, drawings in <shot>/maya/bgcache, Auto order")
@@ -91,7 +92,7 @@ mine = os.path.join(home, "example.json"); json.dump(ex, open(mine, "w"))
 use(mine)
 scene = proj + "/BIRDS/shots/sq010/sh0040/anim/scenes/sh0040_anim_v002.ma"
 assert pf.parse_shot(scene) == ("BIRDS", "sh0040", "sq010")
-assert pf.drawings_root(scene) == os.path.normpath(proj + "/BIRDS/shots/sq010/sh0040/review/bgcache")
+assert N(pf.drawings_root(scene)) == N(os.path.normpath(proj + "/BIRDS/shots/sq010/sh0040/review/bgcache"))
 for shot in ("sh0010", "sh0040", "sh0050"):
     os.makedirs(os.path.join(proj, "BIRDS", "shots", "sq010", shot))
 os.makedirs(os.path.join(proj, "BIRDS", "shots", "sq020", "sh0100"))

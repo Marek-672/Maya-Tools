@@ -4,7 +4,7 @@ TESTS = os.path.dirname(os.path.abspath(__file__))
 ns = runpy.run_path(os.path.join(TESTS, "test_worker.py"))   # fake Maya + worker
 worker, common, state = ns["worker"], ns["common"], ns["state"]
 from bgcache import selftest
-import tempfile; os.environ["HOME"] = tempfile.mkdtemp()     # the report is saved under ~/.bgcache
+import tempfile; os.environ["HOME"] = os.environ["USERPROFILE"] = tempfile.mkdtemp()     # the report is saved under ~/.bgcache
 
 m = selftest.fit([(1, 1.38), (3, 1.94), (6, 2.78), (12, 4.46)])
 assert abs(m[0] - 1.1) < 0.02 and abs(m[1] - 0.28) < 0.01, m

@@ -36,7 +36,10 @@ with mock.patch.dict(os.environ, {"MAYA_LOCATION": ""}), mock.patch.object(sys, 
 print("ok: Windows: bin/maya.exe and bin/mayapy.exe from MAYA_LOCATION, else next to the running maya.exe")
 assert windows.hidden_console() == {"creationflags": 0x08000000} and linux.hidden_console() == {}
 print("ok: Windows starts console programs (mayapy, ffmpeg) with CREATE_NO_WINDOW; Linux/macOS unchanged")
-assert windows.pid_alive(12345) is True          # no Windows API here: can't tell -> never closes anything
+if sys.platform != "win32":
+    assert windows.pid_alive(12345) is True      # no Windows API here: can't tell -> never closes anything
+else:
+    assert windows.pid_alive(os.getpid()) is True
 assert windows.pid_alive(None) is True
 print("ok: Windows process check never reports a live Maya as gone when it can't ask")
 calls = []
@@ -78,21 +81,23 @@ print("ok: a status write that Windows refuses twice still lands, leaving no tem
 app = os.path.join(root, "Applications", "Autodesk", "maya2027", "Maya.app", "Contents")
 mac_maya = touch_exe(os.path.join(app, "MacOS", "Maya"))
 mac_py = touch_exe(os.path.join(app, "bin", "mayapy"))
-with mock.patch.dict(os.environ, {"MAYA_LOCATION": app}):
-    assert macos.find_maya() == mac_maya and macos.find_mayapy() == mac_py
-with mock.patch.dict(os.environ, {"MAYA_LOCATION": ""}), mock.patch.object(sys, "executable", mac_maya):
-    assert macos.find_maya() == mac_maya and macos.find_mayapy() == mac_py
+if os.sep == "/":                  # Mac paths: only checked on macOS and Linux
+    with mock.patch.dict(os.environ, {"MAYA_LOCATION": app}):
+        assert macos.find_maya() == mac_maya and macos.find_mayapy() == mac_py
+    with mock.patch.dict(os.environ, {"MAYA_LOCATION": ""}), mock.patch.object(sys, "executable", mac_maya):
+        assert macos.find_maya() == mac_maya and macos.find_mayapy() == mac_py
 print("ok: macOS: MacOS/Maya and bin/mayapy inside Maya.app, from MAYA_LOCATION or the running Maya")
 
 # ---- Linux: exactly the old order, the studio wrapper only from the profile
-lin = os.path.join(root, "usr", "autodesk", "maya2024")
-lin_maya = touch_exe(os.path.join(lin, "bin", "maya"))
-lin_py = touch_exe(os.path.join(lin, "bin", "mayapy"))
-with mock.patch.dict(os.environ, {"MAYA_LOCATION": lin}):
-    assert linux.find_maya() == lin_maya and linux.find_mayapy() == lin_py
-wrap_dir = os.path.join(root, "studio_bin"); wrapper = touch_exe(os.path.join(wrap_dir, "studiomaya"))
-with mock.patch.dict(os.environ, {"MAYA_LOCATION": "", "PATH": wrap_dir}), \
-     mock.patch.object(linux, "_running_binary", lambda: None):
-    assert linux.find_maya() is None
-    assert linux.find_maya(("studiomaya",)) == wrapper
+if os.sep == "/":                  # Linux paths: only checked on macOS and Linux
+    lin = os.path.join(root, "usr", "autodesk", "maya2024")
+    lin_maya = touch_exe(os.path.join(lin, "bin", "maya"))
+    lin_py = touch_exe(os.path.join(lin, "bin", "mayapy"))
+    with mock.patch.dict(os.environ, {"MAYA_LOCATION": lin}):
+        assert linux.find_maya() == lin_maya and linux.find_mayapy() == lin_py
+    wrap_dir = os.path.join(root, "studio_bin"); wrapper = touch_exe(os.path.join(wrap_dir, "studiomaya"))
+    with mock.patch.dict(os.environ, {"MAYA_LOCATION": "", "PATH": wrap_dir}), \
+         mock.patch.object(linux, "_running_binary", lambda: None):
+        assert linux.find_maya() is None
+        assert linux.find_maya(("studiomaya",)) == wrapper
 print("ok: Linux: bin/maya and bin/mayapy as before; a studio wrapper comes only from the profile's maya_wrappers")

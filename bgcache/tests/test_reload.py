@@ -5,7 +5,7 @@ import os, sys, types, json, tempfile, time
 from unittest import mock
 TESTS = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(TESTS)
-root = tempfile.mkdtemp(); os.environ["BGCACHE_ROOT"] = root; os.environ["HOME"] = root
+root = tempfile.mkdtemp(); os.environ["BGCACHE_ROOT"] = root; os.environ["HOME"] = os.environ["USERPROFILE"] = root
 
 class Dummy(object):
     def __init__(self, *a, **k): pass

@@ -6,7 +6,7 @@ from unittest import mock
 TESTS = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(TESTS)
 root = tempfile.mkdtemp(); os.environ["BGCACHE_ROOT"] = root
-os.environ["HOME"] = root
+os.environ["HOME"] = os.environ["USERPROFILE"] = root
 os.environ.pop("BGCACHE_PROFILE", None)
 
 class Dummy(object):

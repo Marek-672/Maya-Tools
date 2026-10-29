@@ -4,10 +4,11 @@ import os, sys, json, tempfile, zipfile, time
 TESTS = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(TESTS))
 from bgcache import drawing as dr
+N = lambda p: os.path.splitdrive(os.path.normpath(p))[1].replace("\\", "/")   # compare paths the same way on Windows
 
 root = tempfile.mkdtemp()
-assert dr.drawings_root("/projects/BIRDS/sq050_0472/maya/scenes/x.mb") == "/projects/BIRDS/sq050_0472/maya/bgcache"
-assert dr.drawings_root("/home/me/test scene.mb") == "/home/me/bgcache/test_scene"     # outside a shot: next to the scene
+assert N(dr.drawings_root("/projects/BIRDS/sq050_0472/maya/scenes/x.mb")) == N("/projects/BIRDS/sq050_0472/maya/bgcache")
+assert N(dr.drawings_root("/home/me/test scene.mb")) == N("/home/me/bgcache/test_scene")     # outside a shot: next to the scene
 assert dr.camera_folder("|Assets|renderCam|camera") == "camera"
 print("ok: drawings live in <shot>/maya/bgcache/<user>/drawings/<camera>/")
 

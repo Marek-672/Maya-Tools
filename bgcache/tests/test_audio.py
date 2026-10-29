@@ -1,7 +1,7 @@
 import os, sys
 TESTS = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(TESTS)
-import sys, types, struct, wave, io, math, array, os
+import sys, types, struct, wave, io, math, array, os, tempfile
 # stub PySide2 so audio.py imports
 qt = types.ModuleType("PySide2"); qc = types.ModuleType("PySide2.QtCore"); qt.QtCore = qc
 sys.modules["PySide2"] = qt; sys.modules["PySide2.QtCore"] = qc
@@ -46,7 +46,7 @@ def first_sample(pcm, ch, k):
     return struct.unpack_from("<h", pcm, k * 2 * min(ch, 2))[0]
 
 for maker, ch, tol in ((wav16, 1, 0), (lambda p: wav16(p, 4), 4, 0), (wav_ext24, 2, 0), (wav_float, 1, 1), (aiff16, 1, 0)):
-    path = "/tmp/t_%s.%s" % (id(maker), "aif" if maker is aiff16 else "wav")
+    path = os.path.join(tempfile.gettempdir(), "t_%s.%s" % (id(maker), "aif" if maker is aiff16 else "wav"))
     maker(path)
     # scene 1001-1048 (2 s), sound starts at frame 1005, sourceStart 2 frames in
     info = {"path": path, "offset": 1005, "source_start": 2, "source_end": 0}
@@ -68,7 +68,7 @@ for maker, ch, tol in ((wav16, 1, 0), (lambda p: wav16(p, 4), 4, 0), (wav_ext24,
     print("ok", os.path.basename(path), c, "ch")
 
 # sourceEnd trims; scene starting after the sound began
-info = {"path": "/tmp/t_trim.wav", "offset": 990, "source_start": 0, "source_end": 20}
+info = {"path": os.path.join(tempfile.gettempdir(), "t_trim.wav"), "offset": 990, "source_start": 0, "source_end": 20}
 wav16(info["path"])
 pcm, c, r = audio.load_aligned(info, 1001, 1048, fps)
 k = 0; assert first_sample(pcm, c, 0) == vals[int(round(11 / fps * rate))]

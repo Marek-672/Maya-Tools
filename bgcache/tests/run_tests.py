@@ -9,8 +9,12 @@ import glob, os, subprocess, sys, tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 # Tests run with the studio-style profile in fixtures/ unless a test sets its own.
+# A throwaway home folder too, so no test can touch your own settings
+# (~ is HOME on Linux/macOS, USERPROFILE on Windows).
+home = tempfile.mkdtemp(prefix="bgcache_testhome_")
 env = dict(os.environ, BGCACHE_LOGS=tempfile.mkdtemp(prefix="bgcache_testlogs_"),
-           BGCACHE_PROFILE=os.path.join(HERE, "fixtures", "studio_profile.json"))
+           BGCACHE_PROFILE=os.path.join(HERE, "fixtures", "studio_profile.json"),
+           HOME=home, USERPROFILE=home)
 total, failed = 0, []
 for path in sorted(glob.glob(os.path.join(HERE, "test_*.py"))):
     result = subprocess.run([sys.executable, path], capture_output=True, text=True, env=env, cwd=HERE)

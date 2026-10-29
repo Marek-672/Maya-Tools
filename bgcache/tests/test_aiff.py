@@ -1,7 +1,7 @@
 import os, sys
 TESTS = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(TESTS)
-import sys, types, struct, array, math
+import sys, types, struct, array, math, tempfile
 qt = types.ModuleType("PySide2"); qc = types.ModuleType("PySide2.QtCore"); qt.QtCore = qc
 sys.modules["PySide2"] = qt; sys.modules["PySide2.QtCore"] = qc
 sys.path.insert(0, REPO)
@@ -36,7 +36,7 @@ cases = [("plain AIFF 16", None, 16, False), ("AIFF 24", None, 24, False), ("AIF
          ("AIFC sowt 16", b"sowt", 16, False), ("AIFC sowt 24", b"sowt", 24, False), ("AIFC in24", b"in24", 24, False),
          ("AIFC twos 16", b"twos", 16, False), ("AIFC fl32", b"fl32", 32, True), ("AIFC FL32", b"FL32", 32, True), ("AIFC fl64", b"fl64", 64, True)]
 for name, comp, bits, fl in cases:
-    path = "/tmp/t.aiff"; make(path, comp, bits, float_=fl)
+    path = os.path.join(tempfile.gettempdir(), "t.aiff"); make(path, comp, bits, float_=fl)
     pcm, ch, r = audio._read_aiff(path)
     got = array.array("h"); got.frombytes(pcm)
     worst = max(abs(got[i * 2] - vals[i]) for i in range(0, n, 97))
@@ -45,6 +45,6 @@ for name, comp, bits, fl in cases:
     snd = audio.load_aligned({"path": path, "offset": 1001, "source_start": 0, "source_end": 24}, 1001, 1340, fps)
     print("ok  %-14s rate=%d max err=%d" % (name, r, worst))
 try:
-    make("/tmp/t.aiff", b"ima4", 16); audio._read_aiff("/tmp/t.aiff")
+    path = os.path.join(tempfile.gettempdir(), "t.aiff"); make(path, b"ima4", 16); audio._read_aiff(path)
 except ValueError as e:
     print("ok  real compression rejected clearly:", e)

@@ -4,7 +4,7 @@ REPO = os.path.dirname(TESTS)
 import sys, types, os, json, tempfile, struct, wave, array, time
 from unittest import mock
 root = tempfile.mkdtemp(); os.environ["BGCACHE_ROOT"] = root
-os.environ["HOME"] = root  # prefs + resolver config go to a temp home
+os.environ["HOME"] = os.environ["USERPROFILE"] = root  # prefs + resolver config go to a temp home
 
 class Dummy(object):
     def __init__(self, *a, **k): pass

@@ -3,7 +3,7 @@ frame, eraser, hold, linked people, rows, opacity, saving, ticks, keys."""
 import os, sys, time, types, tempfile, json
 from unittest import mock
 TESTS = os.path.dirname(os.path.abspath(__file__))
-root = tempfile.mkdtemp(); os.environ["HOME"] = root
+root = tempfile.mkdtemp(); os.environ["HOME"] = os.environ["USERPROFILE"] = root
 def qtmod(name):
     m = mock.MagicMock(); m.__name__ = name; return m
 QtCore, QtGui, QtWidgets = qtmod("QtCore"), qtmod("QtGui"), qtmod("QtWidgets")
@@ -158,7 +158,7 @@ print("ok: Blue Pencil placement from the camera's gate; Drawings off hides tick
 os.chmod(os.path.join(shot_root, "artist", "drawings", "camera"), 0o500)
 mine.layers[0]["frames"]["1300"] = [{"c": "#fff", "w": 2, "p": [[0, 0, 1]]}]
 d.save()
-if os.geteuid() != 0:
+if os.name != "nt" and os.geteuid() != 0:      # Windows: chmod can't make a folder read-only
     assert mine.path.startswith(d.fallback_root) and "home folder" in flashes[-1]
     print("ok: if the shot folder can't be written, drawings go to your home folder (and it says so)")
 os.chmod(os.path.join(shot_root, "artist", "drawings", "camera"), 0o755)
