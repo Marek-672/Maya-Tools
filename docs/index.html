@@ -7,105 +7,171 @@
 <meta name="description" content="BGCache: live playback for heavy Maya shots, while you keep animating. Free Maya tools made by an animator for animators.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
-/* Layout: one column like a shot breakdown; the player's own look (dark greys, orange for active). Dark by choice, like the tools. */
+/* Layout: the page reads like Maya's own screen. Each section opens on a time-slider ruler,
+   the hero carries a live cache bar that re-fills from the frame you're on. Dark by choice, like the tools. */
 :root {
   color-scheme: dark;
-  --ground: #121314;      /* the player's picture surround */
-  --panel: #1d1f21;       /* toolbar grey */
-  --line: #34373a;
-  --ink: #ebe9e6;
-  --muted: #a4a29e;
-  --orange: #e08a45;      /* active / attention, as in the player */
+  --ground: #111213;
+  --panel: #1c1e20;
+  --panel-2: #24272a;
+  --line: #33363a;
+  --ink: #eeebe6;
+  --muted: #a7a39d;
+  --orange: #e8914a;
   --orange-deep: #b8662a;
+  --orange-glow: rgba(232, 145, 74, 0.18);
+  --stale: #3c3f43;
   --display: "Archivo", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
   --body: "IBM Plex Sans", "Segoe UI", Helvetica, Arial, sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
-  --step--1: 0.875rem; --step-0: 1.0625rem; --step-1: 1.3rem; --step-2: 1.75rem; --step-3: 2.6rem; --step-4: clamp(2.6rem, 7vw, 4.6rem);
+  --step--1: 0.875rem; --step-0: 1.0625rem; --step-1: 1.3rem; --step-2: 1.8rem;
+  --step-3: clamp(2.2rem, 5vw, 3.4rem); --step-4: clamp(3rem, 9vw, 6.4rem);
 }
 * { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
 body { margin: 0; background: var(--ground); color: var(--ink); font: 400 var(--step-0)/1.6 var(--body); }
 a { color: var(--orange); text-underline-offset: 3px; }
 a:focus-visible, button:focus-visible { outline: 2px solid var(--orange); outline-offset: 3px; border-radius: 3px; }
 img { max-width: 100%; height: auto; display: block; }
-.wrap { max-width: 1080px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 1160px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 
 /* header */
 body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--panel); }
-header { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--panel); border-bottom: 1px solid var(--line); }
+header { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: color-mix(in srgb, var(--panel) 88%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
 header .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 10px; flex-wrap: wrap; }
-.mark { font: 700 1.05rem/1 var(--display); font-stretch: 112%; letter-spacing: 0.02em; color: var(--ink); text-decoration: none; display: flex; align-items: center; gap: 10px; }
-.mark i { width: 12px; height: 12px; border-radius: 2px; background: var(--orange); display: block; }
-nav { display: flex; gap: 4px; flex-wrap: wrap; }
-nav a { color: var(--ink); text-decoration: none; font-size: var(--step--1); padding: 6px 10px; border-radius: 3px; border: 1px solid transparent; }
-nav a:hover { background: #2a2d30; border-color: var(--line); }
+.mark { font: 800 1.05rem/1 var(--display); font-stretch: 115%; letter-spacing: 0.03em; color: var(--ink); text-decoration: none; display: flex; align-items: center; gap: 10px; }
+.mark i { width: 14px; height: 14px; border-radius: 3px; background: var(--orange); display: block; box-shadow: 0 0 12px var(--orange); }
+nav { display: flex; gap: 2px; flex-wrap: wrap; }
+nav a { color: var(--ink); text-decoration: none; font-size: var(--step--1); padding: 6px 10px; border-radius: 3px; }
+nav a:hover { background: var(--panel-2); color: var(--orange); }
+nav { align-items: center; }
+nav a.coffee { display: inline-flex; align-items: center; gap: 6px; margin-left: 6px; border: 1px solid var(--orange); color: var(--orange); font-weight: 600; }
+nav a.coffee svg { width: 16px; height: 16px; }
+nav a.coffee:hover { background: var(--orange); color: #1a1006; }
 
 /* hero */
-.hero { padding-block: 56px 40px; display: grid; gap: 36px; }
-.eyebrow { font: 500 var(--step--1)/1.2 var(--mono); color: var(--orange); letter-spacing: 0.04em; text-transform: uppercase; }
-h1 { font: 800 var(--step-4)/0.98 var(--display); font-stretch: 80%; letter-spacing: -0.01em; margin: 10px 0 18px; text-wrap: balance; max-width: 14ch; }
-.lede { font-size: var(--step-1); line-height: 1.5; color: var(--ink); max-width: 40ch; margin: 0; }
+.hero { position: relative; padding-block: 64px 48px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 48px; align-items: center; }
+.hero::before { content: ""; position: absolute; right: -10%; top: 0; width: 70%; height: 100%; background: radial-gradient(closest-side, var(--orange-glow), transparent); pointer-events: none; z-index: -1; }
+@media (max-width: 900px) { .hero { grid-template-columns: 1fr; gap: 32px; padding-block: 40px 32px; } }
+.eyebrow { font: 500 var(--step--1)/1.2 var(--mono); color: var(--orange); letter-spacing: 0.06em; text-transform: uppercase; display: flex; gap: 10px; align-items: center; }
+.eyebrow::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--orange); animation: blink 1.6s steps(2) infinite; }
+@keyframes blink { 50% { opacity: 0.2; } }
+h1 { font: 900 var(--step-4)/0.9 var(--display); font-stretch: 68%; letter-spacing: -0.01em; margin: 14px 0 22px; text-transform: uppercase; }
+h1 .line { display: block; }
+h1 .hot { color: var(--orange); }
+.lede { font-size: var(--step-1); line-height: 1.5; max-width: 38ch; margin: 0; }
 .lede em { font-style: normal; color: var(--orange); }
-.cta { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 26px; align-items: center; }
-.btn { display: inline-flex; align-items: center; gap: 8px; font: 600 var(--step-0)/1 var(--body); padding: 13px 18px; border-radius: 4px; text-decoration: none; border: 1px solid var(--line); color: var(--ink); background: #2a2d30; }
-.btn.primary { background: var(--orange-deep); border-color: var(--orange); color: #fff4e8; }
-.btn.primary:hover { background: #c9732f; }
-.btn:hover { border-color: #55595d; }
+.cta { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 28px; align-items: center; }
+.btn { display: inline-flex; align-items: center; gap: 8px; font: 600 var(--step-0)/1 var(--body); padding: 14px 20px; border-radius: 4px; text-decoration: none; border: 1px solid var(--line); color: var(--ink); background: var(--panel-2); transition: transform .15s, box-shadow .15s, background .15s; }
+.btn:hover { transform: translateY(-2px); }
+.btn.primary { background: var(--orange); border-color: var(--orange); color: #1a1006; box-shadow: 0 8px 24px -8px var(--orange); }
+.btn.primary:hover { box-shadow: 0 12px 30px -8px var(--orange); }
 .note { font: 400 var(--step--1)/1.4 var(--mono); color: var(--muted); }
 
-.shot { border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: #0d0e0f; box-shadow: 0 30px 60px -30px rgba(0,0,0,0.8); }
-.shot img { width: 100%; }
-.caption { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 10px 14px; background: var(--panel); font: 400 var(--step--1)/1.4 var(--mono); color: var(--muted); border-top: 1px solid var(--line); }
-.caption b { color: var(--ink); font-weight: 500; }
+/* player mock with live cache bar */
+.player { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: #0c0d0e; box-shadow: 0 40px 80px -30px rgba(0,0,0,.9), 0 0 0 1px rgba(232,145,74,.08); transform: perspective(1400px) rotateY(-4deg); transition: transform .4s; }
+.player:hover { transform: none; }
+@media (max-width: 900px) { .player { transform: none; } }
+.cachebar { background: var(--panel); border-top: 1px solid var(--line); padding: 10px 12px 8px; display: grid; gap: 6px; }
+.cells { display: grid; grid-template-columns: repeat(48, 1fr); gap: 2px; height: 12px; position: relative; }
+.cells span { background: var(--orange); border-radius: 1px; transition: background .12s; }
+.cells span.stale { background: var(--stale); }
+.cells span.edit { background: #fff; }
+.playhead { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--ink); left: 0; box-shadow: 0 0 6px rgba(255,255,255,.5); }
+.cacheinfo { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font: 400 0.8rem/1.3 var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.cacheinfo b { color: var(--orange); font-weight: 600; }
 
-/* sections */
-section { padding-block: 44px; border-top: 1px solid var(--line); }
-h2 { font: 700 var(--step-3)/1.05 var(--display); font-stretch: 85%; margin: 0 0 8px; text-wrap: balance; }
-.sub { color: var(--muted); max-width: 60ch; margin: 0 0 28px; }
-h3 { font: 700 var(--step-1)/1.2 var(--display); font-stretch: 95%; margin: 0 0 6px; }
+/* stats */
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--line); gap: 1px; margin-bottom: 8px; }
+.stats div { background: var(--panel); padding: 20px 22px; }
+.stats strong { display: block; font: 900 clamp(2rem, 5vw, 3rem)/1 var(--display); font-stretch: 70%; color: var(--orange); font-variant-numeric: tabular-nums; }
+.stats span { color: var(--muted); font-size: var(--step--1); }
+@media (max-width: 640px) { .stats { grid-template-columns: 1fr; } }
+
+/* sections open on a time-slider ruler */
+section { padding-block: 24px 56px; }
+.ruler { height: 26px; margin-bottom: 28px; position: relative; border-bottom: 1px solid var(--line);
+  background-image: repeating-linear-gradient(90deg, var(--line) 0 1px, transparent 1px 12px), repeating-linear-gradient(90deg, var(--muted) 0 1px, transparent 1px 120px);
+  background-size: 100% 6px, 100% 12px; background-position: left bottom, left bottom; background-repeat: repeat-x; }
+.ruler b { position: absolute; bottom: 14px; font: 500 0.72rem/1 var(--mono); color: var(--muted); }
+.ruler b.key { color: var(--orange); }
+.ruler b.key::after { content: ""; position: absolute; left: 1px; top: 16px; width: 7px; height: 7px; background: var(--orange); transform: rotate(45deg); }
+h2 { font: 900 var(--step-3)/1 var(--display); font-stretch: 70%; text-transform: uppercase; margin: 0 0 10px; text-wrap: balance; }
+.sub { color: var(--muted); max-width: 60ch; margin: 0 0 32px; }
+h3 { font: 700 var(--step-1)/1.2 var(--display); font-stretch: 92%; margin: 0 0 6px; }
 p { max-width: 65ch; }
 
-.steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 22px; list-style: none; padding: 0; margin: 0; counter-reset: step; }
-.steps li { counter-increment: step; padding-top: 14px; border-top: 2px solid var(--line); }
-.steps li::before { content: "Step " counter(step); display: block; font: 500 var(--step--1)/1 var(--mono); color: var(--orange); margin-bottom: 10px; letter-spacing: 0.04em; text-transform: uppercase; }
-.steps p { margin: 0; color: var(--muted); }
+/* how it works: three programs, small files passing between them */
+.flow { display: grid; grid-template-columns: minmax(0,1fr) 60px minmax(0,1fr) 60px minmax(0,1fr); align-items: stretch; }
+.node { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 20px; display: grid; gap: 8px; align-content: start; }
+.node .tag { font: 500 0.75rem/1 var(--mono); color: var(--orange); letter-spacing: .06em; text-transform: uppercase; }
+.node p { margin: 0; color: var(--muted); }
+.node.hidden { border-style: dashed; }
+.pipe { position: relative; align-self: center; height: 2px; background-image: linear-gradient(90deg, var(--orange) 50%, transparent 50%); background-size: 12px 2px; animation: flowx .6s linear infinite; }
+.pipe::after { content: ""; position: absolute; right: -2px; top: -4px; border-left: 8px solid var(--orange); border-top: 5px solid transparent; border-bottom: 5px solid transparent; }
+@keyframes flowx { to { background-position: 12px 0; } }
+@media (max-width: 860px) {
+  .flow { grid-template-columns: 1fr; }
+  .pipe { width: 2px; height: 36px; justify-self: center; background-image: linear-gradient(180deg, var(--orange) 50%, transparent 50%); background-size: 2px 12px; animation-name: flowy; }
+  .pipe::after { right: -4px; top: auto; bottom: -2px; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 8px solid var(--orange); border-bottom: 0; }
+}
+@keyframes flowy { to { background-position: 0 12px; } }
 
-.feature { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 32px; align-items: center; padding-block: 18px; }
-.feature + .feature { border-top: 1px dashed var(--line); }
-.feature figure { margin: 0; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
-.feature ul { margin: 10px 0 0; padding-left: 1.1em; color: var(--muted); }
-.feature li { margin: 4px 0; }
+/* features */
+.feature { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 40px; align-items: center; padding-block: 28px; }
+.feature:nth-of-type(even) { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); }
+.feature:nth-of-type(even) .text { order: 2; }
+.feature figure { margin: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; box-shadow: 0 24px 50px -28px rgba(0,0,0,.9); transition: box-shadow .25s, border-color .25s; }
+.feature figure img { transition: transform .5s; }
+.feature figure:hover { border-color: var(--orange-deep); box-shadow: 0 24px 60px -24px var(--orange-glow); }
+.feature figure:hover img { transform: scale(1.03); }
+.feature ul { margin: 12px 0 0; padding: 0; list-style: none; display: grid; gap: 8px; color: var(--muted); }
+.feature li { padding-left: 18px; position: relative; }
+.feature li::before { content: ""; position: absolute; left: 0; top: .6em; width: 7px; height: 7px; background: var(--orange); transform: rotate(45deg); }
 .feature .text p { color: var(--muted); margin: 0; }
-@media (max-width: 760px) { .feature { grid-template-columns: 1fr; gap: 16px; } .feature figure { order: -1; } }
+@media (max-width: 760px) {
+  .feature, .feature:nth-of-type(even) { grid-template-columns: 1fr; gap: 18px; }
+  .feature figure { order: -1; }
+  .feature:nth-of-type(even) .text { order: 0; }
+}
 
-.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
-.facts div { background: var(--panel); padding: 16px 18px; }
-.facts dt { font: 500 var(--step--1)/1.2 var(--mono); color: var(--orange); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; }
-.facts dd { margin: 0; }
-.facts dl { margin: 0; }
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.facts > div { background: var(--panel); padding: 16px 18px; }
+.facts dt { font: 500 var(--step--1)/1.2 var(--mono); color: var(--orange); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+.facts dd, .facts dl { margin: 0; }
 
-.install { counter-reset: inst; list-style: none; padding: 0; margin: 0; display: grid; gap: 14px; max-width: 70ch; }
-.install li { counter-increment: inst; display: grid; grid-template-columns: 2.2rem minmax(0, 1fr); gap: 12px; align-items: baseline; }
-.install li::before { content: counter(inst); font: 700 var(--step-1)/1 var(--display); color: var(--orange); }
-code { font: 400 0.92em/1.4 var(--mono); background: #26292c; border: 1px solid var(--line); border-radius: 3px; padding: 1px 5px; }
+/* install */
+.install { counter-reset: inst; list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.install li { counter-increment: inst; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 20px; min-width: 0; }
+.install li::before { content: counter(inst); display: block; font: 900 3rem/1 var(--display); font-stretch: 70%; color: var(--orange); margin-bottom: 8px; }
+code { font: 400 0.9em/1.4 var(--mono); background: #2a2d30; border: 1px solid var(--line); border-radius: 3px; padding: 1px 5px; overflow-wrap: anywhere; }
 
+/* tools */
 .tools { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
-.tool { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 18px; display: grid; gap: 8px; align-content: start; }
+.tool { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 22px; display: grid; gap: 10px; align-content: start; transition: transform .2s, border-color .2s; }
+.tool:hover { transform: translateY(-4px); border-color: #4a4e52; }
+.tool.live { border-color: var(--orange-deep); background: linear-gradient(160deg, rgba(232,145,74,.12), var(--panel) 60%); }
 .tool p { margin: 0; color: var(--muted); }
-.status { justify-self: start; font: 500 0.78rem/1 var(--mono); letter-spacing: 0.05em; text-transform: uppercase; padding: 5px 8px; border-radius: 3px; border: 1px solid var(--line); color: var(--muted); }
-.status.beta { color: #fff4e8; background: var(--orange-deep); border-color: var(--orange); }
+.status { justify-self: start; font: 600 0.74rem/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; padding: 6px 9px; border-radius: 3px; border: 1px solid var(--line); color: var(--muted); }
+.status.beta { color: #1a1006; background: var(--orange); border-color: var(--orange); }
 
-.support { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 28px; align-items: center; }
-.support .box { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 22px; display: grid; gap: 12px; justify-items: start; }
-.btn.give { background: #2a2d30; border-color: var(--orange); }
+/* support */
+.support { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 32px; align-items: center; background: radial-gradient(120% 140% at 0% 0%, rgba(232,145,74,.14), transparent 60%), var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 32px; }
+.support .box { display: grid; gap: 12px; justify-items: start; }
+.btn.give { border-color: var(--orange); }
 .btn.give svg { width: 20px; height: 20px; }
 .btn[aria-disabled="true"] { opacity: 0.6; pointer-events: none; }
-@media (max-width: 760px) { .support { grid-template-columns: 1fr; } }
+@media (max-width: 760px) { .support { grid-template-columns: 1fr; padding: 22px; } }
 
-footer { border-top: 1px solid var(--line); padding-block: 28px 40px; color: var(--muted); font-size: var(--step--1); }
+footer { border-top: 1px solid var(--line); padding-block: 28px 40px; color: var(--muted); font-size: var(--step--1); margin-top: 24px; }
 footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  html { scroll-behavior: auto; }
+}
 </style>
 </head>
 <body>
@@ -113,11 +179,15 @@ footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wr
   <div class="wrap">
     <a class="mark" href="#top"><i></i>MK Anim Tools</a>
     <nav aria-label="Sections">
-      <a href="#bgcache">BGCache</a>
+      <a href="#how">How it works</a>
+      <a href="#features">Features</a>
       <a href="#install">Install</a>
       <a href="#tools">Tools</a>
-      <a href="#support">Support</a>
       <a href="https://github.com/Marek-672/Maya-Tools">GitHub</a>
+      <a class="coffee" id="donate-top" href="#support">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M4 9h13v4a6 6 0 0 1-6 6H10a6 6 0 0 1-6-6V9Zm13 1h1.5a2.5 2.5 0 0 1 0 5H16.5M8 3.5c0 1 1 1.5 1 2.5M12 3.5c0 1 1 1.5 1 2.5"/></svg>
+        <span id="donate-top-label">Support</span>
+      </a>
     </nav>
   </div>
 </header>
@@ -125,35 +195,50 @@ footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wr
 <main id="top">
   <div class="wrap hero">
     <div>
-      <div class="eyebrow">BGCache · free beta · Maya 2024 and later</div>
-      <h1>Edit a key. Watch it play.</h1>
+      <div class="eyebrow">BGCache · free beta · Maya 2024+</div>
+      <h1><span class="line">Edit a key.</span><span class="line hot">Watch it play.</span></h1>
       <p class="lede">Heavy rigs can't play in real time, so you playblast again and again. BGCache does it for you in the background: a hidden second Maya re-playblasts <em>only the frames your edit changed</em>, the one you're on first, and a player plays the shot at full speed with sound while you keep animating.</p>
       <div class="cta">
         <a class="btn primary" href="https://github.com/Marek-672/Maya-Tools/releases">Download BGCache</a>
         <a class="btn" href="https://github.com/Marek-672/Maya-Tools/blob/main/bgcache/bgcache/README.md">Read the guide</a>
-        <span class="note">Windows · macOS · Linux · MIT licence</span>
       </div>
+      <p class="note" style="margin-top:14px">Windows · macOS · Linux · MIT licence</p>
     </div>
-    <div class="shot" id="bgcache">
+    <div class="player" id="bgcache">
       <img src="img/player.png" width="1280" height="760" alt="The BGCache player: a toolbar with bgcache, View and Help menus, Camera, Draw, Refresh, Reload scene, Re-render all and Pause; a cached frame of a bouncing ball between blocks; the cache bar and playback buttons below.">
-      <div class="caption"><span>A key edit on frame 17: <b>33 frames</b> changed</span><span>first new frame on screen after <b>0.25 s</b>, all after 0.8 s</span></div>
+      <div class="cachebar" aria-label="Cache bar: after a key edit, only the changed frames re-cache, starting from the frame you're on.">
+        <div class="cells" id="cells"><div class="playhead" id="playhead"></div></div>
+        <div class="cacheinfo"><span>Key edit on frame <b>17</b></span><span id="cachecount">Up to date</span></div>
+      </div>
     </div>
   </div>
 
-  <section>
+  <div class="wrap">
+    <div class="stats">
+      <div><strong>Faster</strong><span>than playblasting the whole shot again after every edit</span></div>
+      <div><strong>Only</strong><span>the frames your edit changed get re-cached, the one you're on first</span></div>
+      <div><strong>0</strong><span>times your scene file is saved or changed</span></div>
+    </div>
+  </div>
+
+  <section id="how">
     <div class="wrap">
+      <div class="ruler" aria-hidden="true"><b style="left:0">1</b><b style="left:120px">10</b><b class="key" style="left:240px">20</b><b style="left:360px">30</b></div>
       <h2>How it works</h2>
-      <p class="sub">Three programs on your own computer, talking through small files. No network, no server, and your scene file is never saved.</p>
-      <ol class="steps">
-        <li><h3>You animate as usual</h3><p>Your Maya watches your key edits and sends just the changed curves, when you let go of the mouse.</p></li>
-        <li><h3>A hidden Maya re-renders</h3><p>A second Maya with a copy of your scene applies the edit and playblasts only the frames it changed, starting with the one you're on.</p></li>
-        <li><h3>The player plays it</h3><p>A separate player window plays the cached frames at full speed with sound, and follows your Maya's time slider and hotkeys.</p></li>
-      </ol>
+      <p class="sub">Three programs on your own computer, passing small files to each other. No network, no server, and your scene file is never saved.</p>
+      <div class="flow">
+        <div class="node"><span class="tag">Your Maya</span><h3>You animate as usual</h3><p>Your Maya watches your key edits and sends just the changed curves when you let go of the mouse.</p></div>
+        <div class="pipe" aria-hidden="true"></div>
+        <div class="node hidden"><span class="tag">Hidden Maya</span><h3>It re-renders the changes</h3><p>A second Maya with a copy of your scene applies the edit and playblasts only the frames it changed, starting with the one you're on.</p></div>
+        <div class="pipe" aria-hidden="true"></div>
+        <div class="node"><span class="tag">Player</span><h3>The player plays it</h3><p>A separate window plays the cached frames at full speed with sound, and follows your Maya's time slider and hotkeys.</p></div>
+      </div>
     </div>
   </section>
 
-  <section>
+  <section id="features">
     <div class="wrap">
+      <div class="ruler" aria-hidden="true"><b style="left:0">40</b><b class="key" style="left:120px">50</b><b style="left:240px">60</b><b style="left:360px">70</b></div>
       <h2>Made for how animators work</h2>
       <p class="sub">The player follows your own Maya hotkeys: step frame, step key, play, scrub.</p>
       <div class="feature">
@@ -186,7 +271,7 @@ footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wr
           </ul>
         </div>
         <dl class="facts">
-          <div><dt>Edit to screen</dt><dd>A fraction of a second for the frame you're on</dd></div>
+          <div><dt>Edit to screen</dt><dd>The frame you're on is re-cached first</dd></div>
           <div><dt>Cameras</dt><dd>Any shot camera; persp, top, front and side are ignored</dd></div>
           <div><dt>Sound</dt><dd>Your time slider's sound, in sync</dd></div>
           <div><dt>Drawings</dt><dd>Saved next to your scene or project</dd></div>
@@ -197,12 +282,13 @@ footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wr
 
   <section id="install">
     <div class="wrap">
-      <h2>Install</h2>
-      <p class="sub">About a minute. It installs as a Maya module in your own Maya folder and never edits <code>userSetup.py</code> or <code>Maya.env</code>.</p>
+      <div class="ruler" aria-hidden="true"><b style="left:0">80</b><b style="left:120px">90</b><b class="key" style="left:240px">100</b><b style="left:360px">110</b></div>
+      <h2>Install in a minute</h2>
+      <p class="sub">It installs as a Maya module in your own Maya folder and never edits <code>userSetup.py</code> or <code>Maya.env</code>.</p>
       <ol class="install">
-        <li><span>Download the zip for your system from <a href="https://github.com/Marek-672/Maya-Tools/releases">Releases</a> (<code>bgcache-&lt;version&gt;-windows-simple.zip</code>, <code>-macos-</code> or <code>-linux-</code>) and unzip it.</span></li>
-        <li><span>Drag <code>install_bgcache.py</code> into a Maya viewport and choose <b>Install</b>. No restart needed.</span></li>
-        <li><span>Click the new <b>bgcache</b> shelf button. The player opens: pick a camera and it starts caching.</span></li>
+        <li>Download the zip for your system from <a href="https://github.com/Marek-672/Maya-Tools/releases">Releases</a> and unzip it.</li>
+        <li>Drag <code>install_bgcache.py</code> into a Maya viewport and choose <b>Install</b>. No restart needed.</li>
+        <li>Click the new <b>bgcache</b> shelf button. Pick a camera and it starts caching.</li>
       </ol>
       <p class="note" style="margin-top:20px">To update, drag the new version's installer in the same way (your old copy is kept). The same installer also uninstalls.</p>
       <div class="facts" style="margin-top:24px">
@@ -216,29 +302,32 @@ footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wr
 
   <section id="tools">
     <div class="wrap">
+      <div class="ruler" aria-hidden="true"><b style="left:0">120</b><b style="left:120px">130</b><b style="left:240px">140</b><b class="key" style="left:360px">150</b></div>
       <h2>More tools on the way</h2>
       <p class="sub">The same idea behind each one: less waiting, more animating.</p>
       <div class="tools">
-        <div class="tool"><span class="status beta">Beta · download</span><h3>BGCache</h3><p>Live playback for heavy shots, with drawing over playback.</p></div>
+        <div class="tool live"><span class="status beta">Beta · download</span><h3>BGCache</h3><p>Live playback for heavy shots, with drawing over playback.</p></div>
         <div class="tool"><span class="status">Coming soon</span><h3>Shot Transfer</h3><p>Copy animation and constraints, prop attach setups too, from another shot's file into yours: one frame or the whole range, without opening that file.</p></div>
-        <div class="tool"><span class="status">Coming soon</span><h3>Refplane tool</h3><p>Put the previous and next shots' movies on your camera as image planes, so you animate in continuity right in the viewport.</p></div>
+        <div class="tool"><span class="status">Coming soon</span><h3>Reference Editor</h3><p>Bring your video reference into your shot. It finds the takes in your reference file automatically. Pick and trim the ones you want, then place them in Maya: on the shot camera, in front of or behind your character, or as free planes in the scene.</p></div>
       </div>
     </div>
   </section>
 
   <section id="support">
-    <div class="wrap support">
-      <div>
-        <h2>Support the tools</h2>
-        <p class="sub">The tools are free and stay free. If they save you time and you'd like to say thanks, a donation helps me keep making them. Bug reports and ideas help just as much.</p>
-      </div>
-      <div class="box">
-        <a class="btn give" id="donate" href="#support" aria-disabled="true">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M4 9h13v4a6 6 0 0 1-6 6H10a6 6 0 0 1-6-6V9Zm13 1h1.5a2.5 2.5 0 0 1 0 5H16.5M8 3.5c0 1 1 1.5 1 2.5M12 3.5c0 1 1 1.5 1 2.5"/></svg>
-          <span id="donate-label">Donations open soon</span>
-        </a>
-        <a class="btn" href="https://github.com/Marek-672/Maya-Tools/issues/new/choose">Report a problem or idea</a>
-        <span class="note">Please leave anything from a studio production out of reports.</span>
+    <div class="wrap">
+      <div class="support">
+        <div>
+          <h2>Support the tools</h2>
+          <p class="sub" style="margin:0">The tools are free and stay free. If they save you time and you'd like to say thanks, a donation helps me keep making them. Bug reports and ideas help just as much.</p>
+        </div>
+        <div class="box">
+          <a class="btn give" id="donate" href="#support" aria-disabled="true">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M4 9h13v4a6 6 0 0 1-6 6H10a6 6 0 0 1-6-6V9Zm13 1h1.5a2.5 2.5 0 0 1 0 5H16.5M8 3.5c0 1 1 1.5 1 2.5M12 3.5c0 1 1 1.5 1 2.5"/></svg>
+            <span id="donate-label">Donations open soon</span>
+          </a>
+          <a class="btn" href="https://github.com/Marek-672/Maya-Tools/issues/new/choose">Report a problem or idea</a>
+          <span class="note">Please leave anything from a studio production out of reports.</span>
+        </div>
       </div>
     </div>
   </section>
@@ -260,7 +349,36 @@ footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wr
     var b = document.getElementById("donate");
     b.href = DONATE_URL; b.removeAttribute("aria-disabled");
     document.getElementById("donate-label").textContent = DONATE_LABEL;
+    document.getElementById("donate-top").href = DONATE_URL;
+    document.getElementById("donate-top-label").textContent = DONATE_LABEL;
   }
+
+  // Cache bar demo: a key edit on frame 17 makes frames 9-41 stale;
+  // they re-cache from the frame you're on outward, while the playhead keeps playing.
+  (function () {
+    var N = 48, EDIT = 17, A = 9, B = 41;
+    var wrap = document.getElementById("cells"), ph = document.getElementById("playhead");
+    var count = document.getElementById("cachecount"), cells = [];
+    for (var f = 1; f <= N; f++) { var s = document.createElement("span"); wrap.insertBefore(s, ph); cells.push(s); }
+    var order = [];
+    for (f = A; f <= B; f++) order.push(f);
+    order.sort(function (x, y) { return Math.abs(x - EDIT) - Math.abs(y - EDIT) || x - y; });
+    var still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (still) { ph.style.left = ((EDIT - 1) / N * 100) + "%"; return; }
+    var phase = "idle", t = 0, done = 0, frame = 1;
+    function stale() { for (var f = A; f <= B; f++) cells[f - 1].className = "stale"; cells[EDIT - 1].className = "edit"; done = 0; }
+    setInterval(function () {
+      frame = frame % N + 1;
+      ph.style.left = ((frame - 1) / N * 100) + "%";
+      t++;
+      if (phase === "idle" && t > 20) { stale(); phase = "fill"; t = 0; count.textContent = "Re-caching changed frames"; }
+      else if (phase === "fill" && t > 3) {
+        for (var k = 0; k < 2 && done < order.length; k++) { cells[order[done] - 1].className = ""; done++; }
+        count.textContent = done < order.length ? "Re-caching changed frames" : "Up to date";
+        if (done >= order.length) { phase = "idle"; t = 0; }
+      }
+    }, 70);
+  })();
 </script>
 </body>
 </html>
