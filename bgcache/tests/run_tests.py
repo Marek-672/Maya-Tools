@@ -25,5 +25,8 @@ for path in sorted(glob.glob(os.path.join(HERE, "test_*.py"))):
     if result.returncode != 0:
         failed.append(path)
         print("\n".join(("    " + l) for l in (result.stdout + result.stderr).splitlines()[-12:]))
+        if os.environ.get("GITHUB_ACTIONS"):     # show the failure on the GitHub run page too
+            tail = (result.stdout + result.stderr).splitlines()[-12:]
+            print("::error title=%s::%s" % (os.path.basename(path), "%0A".join(tail).replace("::", ": :")))
 print("\n%d checks passed, %d file(s) failed" % (total, len(failed)))
 sys.exit(1 if failed else 0)

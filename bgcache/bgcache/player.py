@@ -213,6 +213,9 @@ class NoContinuity(object):
     def toggle_live_ref(self):
         pass
 
+    def _scroll_to_live(self):
+        pass
+
 
 def _continuity_part():
     """The add-on's Continuity class, or NoContinuity if it isn't installed

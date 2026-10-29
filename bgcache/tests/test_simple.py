@@ -65,3 +65,25 @@ print("ok: C and R are harmless; settings saved without continuity entries")
 assert P._window_height() == 28 + 40 + 600 + pl.BAR_H + 40
 assert not any(m.startswith("bgcache.continuity") for m in sys.modules)
 print("ok: nothing from the add-on was imported")
+
+# ---- 0.9.0b1: nothing in the core player may need the continuity add-on
+# (the Simple edition's player crashed on show: showEvent called
+# _scroll_to_live, which only the add-on had)
+import ast as _ast, re as _re
+def _defs(path, classes=None):
+    out = set()
+    for n in _ast.walk(_ast.parse(open(path).read())):
+        if isinstance(n, _ast.ClassDef) and (classes is None or n.name in classes):
+            for x in _ast.walk(n):
+                if isinstance(x, _ast.FunctionDef):
+                    out.add(x.name)
+                elif isinstance(x, _ast.Attribute) and isinstance(x.value, _ast.Name) and x.value.id == "self" \
+                        and isinstance(x.ctx, _ast.Store):
+                    out.add(x.attr)
+    return out
+_pkg = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "bgcache")
+_addon_only = _defs(os.path.join(_pkg, "continuity", "ui.py")) - _defs(os.path.join(_pkg, "player.py"))
+for _f, _pat in (("player.py", r"self\.(\w+)"), ("drawui.py", r"\.player\.(\w+)")):
+    _used = set(_re.findall(_pat, open(os.path.join(_pkg, _f)).read()))
+    assert not (_used & _addon_only), (_f, sorted(_used & _addon_only))
+print("ok: the Simple player uses nothing that only the continuity add-on has (NoContinuity covers it)")
