@@ -14,7 +14,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 home = tempfile.mkdtemp(prefix="bgcache_testhome_")
 env = dict(os.environ, BGCACHE_LOGS=tempfile.mkdtemp(prefix="bgcache_testlogs_"),
            BGCACHE_PROFILE=os.path.join(HERE, "fixtures", "studio_profile.json"),
-           HOME=home, USERPROFILE=home)
+           HOME=home, USERPROFILE=home,
+           PYTHONUTF8="1")        # read source files as UTF-8 on Windows too (its default is cp1252)
 total, failed = 0, []
 for path in sorted(glob.glob(os.path.join(HERE, "test_*.py"))):
     result = subprocess.run([sys.executable, path], capture_output=True, text=True, env=env, cwd=HERE)

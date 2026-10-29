@@ -34,7 +34,10 @@ assert mel_cmd.startswith('python("') and mel_cmd.endswith('")') and mel_cmd.cou
 inner = mel_cmd[len('python("'):-2]
 r = subprocess.run([sys.executable, "-c", inner.replace("import bgcache.worker; bgcache.worker.boot()",
                                                        "import bgcache.common; print('found', bgcache.common.__file__)")],
-                   env={"BGCACHE_PKG": wenv["BGCACHE_PKG"]}, cwd="/", capture_output=True, text=True)
+                   env=dict({"BGCACHE_PKG": wenv["BGCACHE_PKG"]},
+                            # Windows' Python can't start without SYSTEMROOT
+                            **({"SYSTEMROOT": os.environ["SYSTEMROOT"]} if "SYSTEMROOT" in os.environ else {})),
+                   cwd="/", capture_output=True, text=True)
 assert r.returncode == 0 and REPO in r.stdout, (r.stdout, r.stderr)
 print("ok: background Maya command is fixed and finds bgcache through BGCACHE_PKG:", mel_cmd)
 # a folder with spaces and backslashes (a Windows install) changes nothing in the command
