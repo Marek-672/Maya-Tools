@@ -1,0 +1,47 @@
+name: Something isn't working
+description: Report a problem with one of the tools.
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: tool
+    attributes:
+      label: Which tool?
+      options:
+        - BGCache
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Tool version
+      description: "BGCache: Help > About in the player, or the name of the zip you installed."
+      placeholder: "0.9.0b1"
+    validations:
+      required: true
+  - type: input
+    id: maya
+    attributes:
+      label: Maya version and system
+      placeholder: "Maya 2025, Windows 11"
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: >
+        BGCache: attach worker.log, player.log and trace.log from
+        ~/.bgcache/logs/<newest folder>/, and paste what BGCache printed in
+        Maya's Script Editor. Help > Self-test in the player prints a short
+        report that helps too. Please leave out anything from a studio
+        production (shot names, file paths you can't share).
+  - type: markdown
+    attributes:
+      value: "Thanks! Screenshots or a short screen recording help a lot."

@@ -1,0 +1,8 @@
+{
+  "_about": "bgcache's built-in behaviour, written out: no shot layout, so no continuity strip; drawings go in <Maya project>/bgcache/<scene name> (or next to the scene when it's outside the project). You don't need this file; it's here to copy from.",
+  "shot_folder": "",
+  "drawings_folder": "",
+  "departments": [],
+  "skip_in_background": ["animbot"],
+  "switch_off_in_background": []
+}

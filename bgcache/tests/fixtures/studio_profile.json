@@ -1,0 +1,64 @@
+{
+  "_about": "Private studio profile: reproduces bgcache 0.7.5 exactly. Ship it as bgcache/profile.json in the studio's install. Not for the public repository.",
+  "shot_folder": "/projects/{show}/{shot}",
+  "sequence_from_shot": "{sequence}_*",
+  "drawings_folder": "{shot_folder}/maya/bgcache",
+  "departments": [
+    {
+      "name": "P",
+      "base_path": "/projects/{show}/{shot}/work/mov",
+      "version_pattern": "P_{shot}_anim_v*",
+      "source_type": "image_sequence"
+    },
+    {
+      "name": "WP",
+      "base_path": "/projects/{show}/{shot}/work/wpb",
+      "version_pattern": "WP_{shot}_anim_v*",
+      "source_type": "image_sequence"
+    },
+    {
+      "name": "shoco",
+      "base_path": "/projects/{show}/{shot}/movie/cgr",
+      "version_pattern": "CG_{shot}_anim_shoco_*_v*",
+      "source_type": "single_movie"
+    },
+    {
+      "name": "lighting",
+      "base_path": "/projects/{show}/{shot}/movie/out",
+      "version_pattern": "O_{shot}_lighting_*_v*",
+      "source_type": "single_movie"
+    },
+    {
+      "name": "editorial",
+      "base_path": "/projects/{show}/EDITORIAL/CUTS/edit_ref/{shot}",
+      "version_pattern": "CUT_{shot}_edit_ref_*_v*",
+      "source_type": "single_movie"
+    }
+  ],
+  "departments_file": "~/.studio_ref_config.json",
+  "auto_order": [
+    "P",
+    "WP",
+    "shoco",
+    "editorial",
+    "lighting"
+  ],
+  "movie_slate_frames": 1,
+  "assume_slate_when_unknown": true,
+  "skip_in_background": [
+    "animbot"
+  ],
+  "switch_off_in_background": [
+    {
+      "if_scriptjob_contains": "rig_has_changed",
+      "call": "rig_callbacks.callback.stop_all"
+    }
+  ],
+  "maya_wrappers": [
+    "studiomaya"
+  ],
+  "ffmpeg": "",
+  "sound_preference": [
+    "_ax_"
+  ]
+}

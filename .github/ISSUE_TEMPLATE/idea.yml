@@ -1,0 +1,20 @@
+name: Idea or request
+description: Suggest something that would help your work.
+labels: ["idea"]
+body:
+  - type: dropdown
+    id: tool
+    attributes:
+      label: Which tool?
+      options:
+        - BGCache
+        - Something new
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would help?
+      description: What you're trying to do in your shot, and what gets in the way today.
+    validations:
+      required: true

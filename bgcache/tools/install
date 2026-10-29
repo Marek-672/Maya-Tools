@@ -1,0 +1,6 @@
+#!/bin/sh
+# Install or update bgcache for Maya, for whoever runs it (into their own
+# ~/maya folder). Close Maya first. Runs install_bgcache.py from this same
+# folder, which installs the newest bgcache zip in releases/ next to it.
+here="$(dirname "$(readlink -f "$0")")"
+exec python3 "$here/install_bgcache.py" "$@"

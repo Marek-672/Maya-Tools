@@ -1,0 +1,27 @@
+name: BGCache tests
+
+# The automatic checks (no Maya needed: Maya and Qt are stubbed), on every
+# system BGCache supports and on the Python versions Maya 2024-2027 use.
+on:
+  push:
+    paths: ["bgcache/**", ".github/workflows/bgcache-tests.yml"]
+  pull_request:
+    paths: ["bgcache/**", ".github/workflows/bgcache-tests.yml"]
+  workflow_dispatch:
+
+jobs:
+  tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python: ["3.10", "3.13"]     # Maya 2024 uses 3.10, Maya 2027 uses 3.13
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Run the tests
+        working-directory: bgcache
+        run: python tests/run_tests.py

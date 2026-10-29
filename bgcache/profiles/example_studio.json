@@ -1,0 +1,47 @@
+{
+  "_about": "Example pipeline profile for bgcache Full. Copy it, change the paths to your studio's layout, and point bgcache at it (BGCACHE_PROFILE, or save it as profile.json in the installed bgcache folder). Every key is explained in bgcache/profile.py.",
+  "shot_folder": "/projects/{show}/shots/{sequence}/{shot}",
+  "_shot_folder_note": "A scene saved anywhere inside a shot folder belongs to that shot. Here the sequence is a folder too, so sequence_from_shot isn't needed.",
+  "drawings_folder": "{shot_folder}/review/bgcache",
+  "departments": [
+    {
+      "name": "anim",
+      "base_path": "{shot_folder}/renders/anim",
+      "version_pattern": "{shot}_anim_v*",
+      "source_type": "image_sequence"
+    },
+    {
+      "name": "layout",
+      "base_path": "{shot_folder}/renders/layout",
+      "version_pattern": "{shot}_layout_v*",
+      "source_type": "image_sequence"
+    },
+    {
+      "name": "lighting",
+      "base_path": "{shot_folder}/movies/lighting",
+      "version_pattern": "{shot}_lighting_v*",
+      "source_type": "single_movie"
+    },
+    {
+      "name": "edit",
+      "base_path": "/projects/{show}/editorial/{sequence}/{shot}",
+      "version_pattern": "{shot}_edit_v*",
+      "source_type": "single_movie"
+    }
+  ],
+  "auto_order": [
+    "anim",
+    "layout",
+    "edit",
+    "lighting"
+  ],
+  "movie_slate_frames": 1,
+  "assume_slate_when_unknown": false,
+  "skip_in_background": [
+    "animbot"
+  ],
+  "switch_off_in_background": [],
+  "sound_preference": [
+    "_mix_"
+  ]
+}
