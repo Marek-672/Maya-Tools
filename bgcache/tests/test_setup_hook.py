@@ -98,3 +98,5 @@ assert P.pos == 43 and P.playing == 0
 assert '"FOCUS %d-%d" % self.focus_range' in src and "TAB_W, TAB_H" in src
 print("ok: with a focus range, Play plays only those frames (looping them with Loop on), skipping neighbouring "
       "shots; a FOCUS tag says so; the handles have tabs that show at the window's edges")
+assert '"About bgcache %s (%s)" % (__version__, "Full" if self.has_continuity' in src
+print("ok: Help > About says which edition is installed (Full or Simple)")

@@ -506,7 +506,8 @@ class Player(_continuity_part(), QtWidgets.QWidget):
         self._update_item.setVisible(bool(self._update_source()))
         self._update_lines = []        # what the last check found, shown under it
         self._update_sep = help_menu.addSeparator()
-        about = help_menu.addAction("About bgcache %s" % __version__)
+        about = help_menu.addAction("About bgcache %s (%s)" % (__version__, "Full" if self.has_continuity
+                                                               else "Simple"))     # b4: which edition
         about.setEnabled(False)
 
     def _build_view_buttons(self, row):

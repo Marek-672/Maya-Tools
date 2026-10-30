@@ -12,7 +12,13 @@ In the Full edition's player, click **Continuity** (or **bgcache > Set up contin
 
 Nothing is saved until you press Save. Pipeline TDs can still write the settings by hand ([PIPELINE_SETUP.md](https://github.com/Marek-672/Maya-Tools/blob/main/bgcache/PIPELINE_SETUP.md)).
 
+### Also new
+- **Focus range plays too:** with a focus set, Play plays and loops only those frames. The handles have tabs, so they're easy to grab at the window's edges.
+- **Drawings stay on** when your shot shows a department's movie instead of Live.
+
 ### Download
+**Which one?** Simple if you just want your own shot playing in real time with drawing. Full adds continuity: the shots around yours playing with it. Full does everything Simple does, and continuity stays off until you set it up, so if you're unsure, take Full. **Help > About** in the player says which one you have.
+
 | Your system | Simple (cache, player, drawing) | Full (+ continuity) |
 |---|---|---|
 | Windows | `bgcache-0.9.0b4-windows-simple.zip` | `bgcache-0.9.0b4-windows-full.zip` |
