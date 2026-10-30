@@ -26,7 +26,7 @@ Found a problem or have an idea? Open an
 ## Support
 
 The tools are free. If they save you time and you'd like to say thanks, a
-donation helps me keep making them. <!-- SUPPORT_LINK -->
+donation helps me keep making them: [ko-fi.com/marekkochout](https://ko-fi.com/marekkochout).
 
 ## Licence
 

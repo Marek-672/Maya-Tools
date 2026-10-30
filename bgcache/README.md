@@ -67,6 +67,11 @@ Open an [issue](https://github.com/Marek-672/Maya-Tools/issues/new/choose) with:
 **Help > Self-test** in the player prints a short report in the Script
 Editor that's useful to include.
 
+## Support
+
+BGCache is free. If it saves you time and you'd like to say thanks, you can
+buy me a coffee at [ko-fi.com/marekkochout](https://ko-fi.com/marekkochout).
+
 ## Studios and pipeline TDs
 
 Everything studio-specific lives in one JSON **pipeline profile**: where shots
