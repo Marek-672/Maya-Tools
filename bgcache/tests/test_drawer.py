@@ -61,8 +61,14 @@ d.release(Pt(100 + 150, 50 + 30))
 mine = d.mine_now()
 st = mine.active_layer()["frames"]["1142"][0]
 assert st["p"][0][:2] == [100.0, 50.0] and st["w"] == 6.0 and st["c"] == drawing.COLORS[1]
-assert os.path.isfile(mine.path)
-print("ok: pen strokes land in frame pixels and are saved in the shot folder")
+# 0.9.0b3: nothing is shared until Save; a private recovery copy follows the change
+assert not os.path.isfile(mine.path) and mine.dirty and d.unsaved() == ["camera"]
+d.write_recovery()                           # (the recovery timer, a moment after the change)
+assert os.path.isfile(mine.recovery_path()) and mine.recovery_path().startswith(os.path.expanduser("~"))
+assert d.save_now() and os.path.isfile(mine.path) and not mine.dirty and not os.path.isfile(mine.recovery_path())
+assert flashes[-1] == "Drawings saved"
+print("ok: pen strokes land in frame pixels; they stay yours (and in a private recovery copy) until Save, "
+      "then go to the shot folder")
 
 player.frame = 1150                          # held: erasing here edits the drawing from 1142
 d.tool = "eraser"
@@ -157,7 +163,8 @@ print("ok: Blue Pencil placement from the camera's gate; Drawings off hides tick
 # shot folder not writable -> home folder
 os.chmod(os.path.join(shot_root, "artist", "drawings", "camera"), 0o500)
 mine.layers[0]["frames"]["1300"] = [{"c": "#fff", "w": 2, "p": [[0, 0, 1]]}]
-d.save()
+mine.dirty = True
+d.save_now()
 if os.name != "nt" and os.geteuid() != 0:      # Windows: chmod can't make a folder read-only
     assert mine.path.startswith(d.fallback_root) and "home folder" in flashes[-1]
     print("ok: if the shot folder can't be written, drawings go to your home folder (and it says so)")
@@ -246,16 +253,17 @@ assert d.person("mlopez", "noise_camera")["status"] == "update"
 panel.fill_import_menu()                                # builds with both cameras without errors
 print("ok: Import lists the other camera: Cache -> caching % -> loaded, ticks work before switching, update shown")
 
-# permissions follow the folder; backups once per sitting
+# permissions follow the folder; every save keeps a version
+mine.save()
 mode = os.stat(os.path.dirname(mine.path)).st_mode & 0o777
 assert os.stat(mine.path).st_mode & 0o777 == mode & 0o666
 n0 = len(os.listdir(mine.history_dir())) if os.path.isdir(mine.history_dir()) else 0
-mine.last_backup = 0; mine.save()
+mine.save()
 hist = sorted(os.listdir(mine.history_dir()))
-assert len(hist) == n0 + 1 and hist[-1].startswith("layers_")
-mine.save(); assert len(os.listdir(mine.history_dir())) == n0 + 1      # same sitting: no new backup
+assert len(hist) == min(n0 + 1, drawing.VERSIONS_KEPT) and hist[-1].startswith("layers_")
+time.sleep(0.002); mine.save(); assert len(os.listdir(mine.history_dir())) == min(n0 + 2, drawing.VERSIONS_KEPT)   # 0.9.0b3: every save is a version
 r0 = mine.rev; mine.save(); assert mine.rev == r0 + 1 and drawing.file_rev(mine.path)[0] == mine.rev
-print("ok: saved files get the folder's permissions; one backup per sitting in history/; rev counts saves")
+print("ok: saved files get the folder's permissions; every save keeps the one before in history/; rev counts saves")
 
 # ===== 0.8.0b5: Paper: the movie fades to white under the drawings =====
 painter = mock.MagicMock(); QtGui.QColor.reset_mock()

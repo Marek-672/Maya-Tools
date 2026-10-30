@@ -24,7 +24,9 @@ Made by an animator for animators. Free and open source (MIT).
   frame, step key, play, scrub) and stays in sync with Maya's time slider.
 - **Drawing over playback:** pen and eraser (with tablet pressure), layers,
   onion skin, hold, Paper (fades the picture so drawings read), stepping
-  through drawings, export to Maya's Blue Pencil.
+  through drawings, export to Maya's Blue Pencil. Drawings are kept when you
+  **Save** (Ctrl+S), with a history of the last 10 saves and a recovery copy
+  if anything crashes.
 - **Focus range:** drag two handles on the cache bar (or press I / O) to cache
   only the part you're working on.
 - **Refresh, Reload scene, Re-render all, Pause**, a self-test, and clear
@@ -58,14 +60,12 @@ The user guide is [bgcache/README.md](bgcache/README.md).
 
 ## Reporting a problem
 
-Open an [issue](https://github.com/Marek-672/Maya-Tools/issues/new/choose) with:
-- your system and Maya version;
-- what you did and what happened;
-- the logs from `~/.bgcache/logs/<newest folder>/` (`worker.log`, `player.log`,
-  `trace.log`) and anything BGCache printed in Maya's Script Editor.
-
-**Help > Self-test** in the player prints a short report in the Script
-Editor that's useful to include.
+In the player, **Help > Report a problem**: write what happened, then
+**Save report...**. The zip holds what you wrote, your versions and system,
+the session's logs and the newest Self-test (**Help > Self-test** first makes
+it more useful); **Hide names** keeps scene and user names out. Then open an
+[issue](https://github.com/Marek-672/Maya-Tools/issues/new/choose) and attach
+the zip.
 
 ## Support
 

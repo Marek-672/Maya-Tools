@@ -421,7 +421,7 @@ def find_shot_audio(template, live_shot, shot):
         return None
     base, pattern = template
     folder, _version = cr._best_version_folder(base.replace(live_shot, shot),
-                                               pattern.replace(live_shot, shot))
+                                               pattern.replace(live_shot, shot), "sound")   # folders only
     if not folder:
         return None
     for root, _dirs, files in os.walk(folder):

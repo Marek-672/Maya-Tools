@@ -250,6 +250,8 @@ class Controller(RefreshMixin, GpuRescueMixin, EditsMixin, SyncMixin, RefPlaneMi
             "background_gpu": gpu_on, "gpu_reason": gpu_reason,
             "releases_folder": profile.get("releases_folder") or "",
             "github_releases": profile.get("github_releases") or "",
+            "reports_url": profile.get("reports_url") or "",
+            "reports_folder": profile.get("reports_folder") or "",
             "before_playblast": profile.get("before_playblast") or "",
             "install_dir": os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
             "hide": bool(hide_background),

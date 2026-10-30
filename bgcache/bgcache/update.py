@@ -40,21 +40,31 @@ def version_key(v):
     return (int(major), int(minor), int(patch or 0), stage, int(n or 0), v)
 
 
-def releases(folder):
-    """{version: zip path} in the releases folder, or its releases/ subfolder
-    (the install folder's layout). Unreadable folder: {}."""
-    out = {}
+def folders(folder):
+    """The releases folder setting as a list: one folder, or (0.9.0b3) a list
+    tried in order, e.g. a folder every site sees first, then the old one."""
     if not folder:
-        return out
-    for where in (os.path.join(folder, "releases"), folder):
-        try:
-            names = os.listdir(where)
-        except (OSError, TypeError):
-            continue
-        for name in names:
-            m = ZIP_RE.match(name)
-            if m:
-                out[m.group(1)] = os.path.join(where, name)
+        return []
+    if isinstance(folder, (list, tuple)):
+        return [os.path.expanduser(f) for f in folder if f]
+    return [os.path.expanduser(folder)]
+
+
+def releases(folder):
+    """{version: zip path} in the releases folder(s), or their releases/
+    subfolder (the install folder's layout). The first folder listed wins
+    when two hold the same version. Unreadable folder: skipped."""
+    out = {}
+    for base in folders(folder):
+        for where in (os.path.join(base, "releases"), base):
+            try:
+                names = sorted(os.listdir(where))
+            except (OSError, TypeError):
+                continue
+            for name in names:
+                m = ZIP_RE.match(name)
+                if m:
+                    out.setdefault(m.group(1), os.path.join(where, name))
     return out
 
 
@@ -206,9 +216,11 @@ def check_github(repo, current, system_name, edition, timeout=8.0):
 
 
 def check_folder(folder, current):
-    """The same answer as check_github, from a studio releases folder."""
-    if not os.path.isdir(folder):
-        return {"state": "error", "message": "can't see the releases folder %s" % folder}
+    """The same answer as check_github, from a studio releases folder (or a
+    list of them)."""
+    listed = folders(folder)
+    if not any(os.path.isdir(f) for f in listed):
+        return {"state": "error", "message": "can't see the releases folder %s" % " or ".join(listed or ["(none set)"])}
     found = newer_release(folder, current)
     if not found:
         return {"state": "latest", "version": current}

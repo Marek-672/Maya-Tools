@@ -27,6 +27,7 @@ from bgcache import common, profile
 
 VERSION_RE = re.compile(r"_v(\d+)$")
 FRAME_FILE_RE = re.compile(r"\.\d+\.(jpg|jpeg|png|tif|tiff|exr)$", re.IGNORECASE)
+MOVIE_EXTS = (".mov", ".mp4", ".m4v")      # 0.9.0b3: .mp4 too
 THUMB_CACHE_DIR = os.path.join(tempfile.gettempdir(), "bgcache_thumbs")
 
 
@@ -71,30 +72,56 @@ def get_ffmpeg_path():
 # ----------------------------------------------------------------------
 # Shot / path resolution
 # ----------------------------------------------------------------------
-def _version_folders(base_dir, pattern):
-    """[(version_number, full_path)] of the _vNNN folders under base_dir
-    matching pattern, oldest first."""
+def _version_folders(base_dir, pattern, source_type=None):
+    """[(version_number, path)] under base_dir matching pattern, oldest
+    first. A version is a _vNNN folder, or (0.9.0b3) the version in a file
+    name, for footage kept side by side in one folder: shot_v004.mov, or
+    shot_v004.1001.jpg... (path: the movie, or the sequence's first
+    frame). A folder wins over a file with the same number."""
     if not os.path.isdir(base_dir):
         return []
-    candidates = []
-    for name in os.listdir(base_dir):
+    folders, files = {}, {}
+    for name in sorted(os.listdir(base_dir)):
         full = os.path.join(base_dir, name)
-        if not os.path.isdir(full):
+        if os.path.isdir(full):
+            m = VERSION_RE.search(name)
+            if m and fnmatch.fnmatch(name, pattern):
+                folders[int(m.group(1))] = full
             continue
-        if not fnmatch.fnmatch(name, pattern):
-            continue
-        m = VERSION_RE.search(name)
-        if not m:
-            continue
-        candidates.append((int(m.group(1)), full))
-    candidates.sort(key=lambda c: c[0])
-    return candidates
+        stem = _versioned_file_stem(name, source_type)
+        m = VERSION_RE.search(stem) if stem else None
+        if m and fnmatch.fnmatch(stem, pattern):
+            files.setdefault(int(m.group(1)), full)          # sorted: the first frame
+    files.update(folders)
+    return sorted(files.items())
 
 
-def _best_version_folder(base_dir, pattern):
-    """Return (full_path, version_number) for the highest _vNNN folder
-    under base_dir matching pattern, or (None, None)."""
-    candidates = _version_folders(base_dir, pattern)
+def _versioned_file_stem(name, source_type):
+    """The name of a footage file without frame number and extension, or
+    None when the file isn't footage for this department."""
+    frame = FRAME_FILE_RE.search(name)
+    if frame and source_type in (None, "image_sequence"):
+        return name[:frame.start()]
+    stem, ext = os.path.splitext(name)
+    if ext.lower() in MOVIE_EXTS and source_type in (None, "single_movie"):
+        return stem
+    return None
+
+
+def _sequence_from_file(first):
+    """(first_frame_path, frame_count, first_frame_number) of a sequence
+    whose frames sit beside other versions' frames in one folder."""
+    folder, name = os.path.split(first)
+    stem = name[:FRAME_FILE_RE.search(name).start()]
+    frames = sorted(f for f in os.listdir(folder)
+                    if FRAME_FILE_RE.search(f) and f[:FRAME_FILE_RE.search(f).start()] == stem)
+    return os.path.join(folder, frames[0]), len(frames), _first_frame_number(frames[0])
+
+
+def _best_version_folder(base_dir, pattern, source_type=None):
+    """Return (full_path, version_number) for the highest version under
+    base_dir matching pattern, or (None, None)."""
+    candidates = _version_folders(base_dir, pattern, source_type)
     if not candidates:
         return None, None
     version_num, folder = candidates[-1]
@@ -115,7 +142,7 @@ def list_versions(show, shot, department_name):
             base_dir, pattern = _dept_place(show, shot, dept)
         except (KeyError, ValueError):
             return []
-        return [v for v, _folder in reversed(_version_folders(base_dir, pattern))]
+        return [v for v, _folder in reversed(_version_folders(base_dir, pattern, dept.get("source_type")))]
     return []
 
 
@@ -148,11 +175,15 @@ def _find_sequence_first_frame(version_folder):
 
 
 def _find_single_movie(version_folder):
-    """Recursively search for the one .mov file under version_folder
-    (handles editorial's extra nesting level the same as any other)."""
-    for root, _dirs, files in os.walk(version_folder):
-        for f in files:
-            if f.lower().endswith(".mov"):
+    """Recursively search for the one movie (.mov, .mp4, .m4v) under
+    version_folder (handles editorial's extra nesting level the same as
+    any other). A movie file itself (a version in its name) is the movie."""
+    if os.path.isfile(version_folder):
+        return version_folder
+    for root, dirs, files in os.walk(version_folder):
+        dirs.sort()
+        for f in sorted(files):
+            if f.lower().endswith(MOVIE_EXTS):
                 return os.path.join(root, f)
     return None
 
@@ -188,14 +219,15 @@ def resolve_shot(show, shot, department_name=None, version=None):
             print("bgcache: department %r in the profile: unknown field %s" % (dept.get("name"), error))
             continue
         if version is not None and department_name is not None:
-            folder = dict(_version_folders(base_dir, pattern)).get(int(version))
+            folder = dict(_version_folders(base_dir, pattern, dept["source_type"])).get(int(version))
             found_version = int(version)
         else:
-            folder, found_version = _best_version_folder(base_dir, pattern)
+            folder, found_version = _best_version_folder(base_dir, pattern, dept["source_type"])
         if not folder:
             continue
         if dept["source_type"] == "image_sequence":
-            first_frame, nb_frames, start_frame = _find_sequence_first_frame(folder)
+            first_frame, nb_frames, start_frame = (_sequence_from_file(folder) if os.path.isfile(folder)
+                                                   else _find_sequence_first_frame(folder))
             if not first_frame:
                 continue
             return {

@@ -100,12 +100,19 @@ DEFAULT = {
     # arguments). Empty: nothing.
     "before_playblast": "",
     # Updates, only when the artist asks (Help > Check for updates):
-    # releases_folder: a studio folder of release zips (bgcache_<version>.zip);
-    # when set, it's the only place looked at.
+    # releases_folder: a studio folder of release zips (bgcache_<version>.zip),
+    # or a list of folders tried in order; when set, the only place looked at.
     # github_releases: the GitHub repository whose bgcache releases are
     # checked otherwise (the check's only network use). Empty: no check.
     "releases_folder": "",
     "github_releases": "Marek-672/Maya-Tools",
+    # Help > Report a problem (0.9.0b3):
+    # reports_url: a Google Apps Script web app that files reports in a
+    # Drive folder (tools/reports_receiver.gs). Empty: no Send, Save only.
+    # reports_folder: where Save report... starts (a pipeline folder, say).
+    # Empty: your home folder.
+    "reports_url": "",
+    "reports_folder": "",
 }
 
 _cache = {"key": None, "profile": None, "source": None}

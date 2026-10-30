@@ -50,6 +50,10 @@ QFrame#head[update="true"] { background: #3a2c1e; border: 1px solid #b8662a; bor
 QToolButton#update { background: #b8662a; border: 1px solid #e08a45; color: #fff4e8; font-weight: bold; font-size: 11px; padding: 1px 9px; }
 QToolButton#update:hover { background: #c9733a; }
 QToolButton#revert { font-size: 11px; padding: 1px 9px; }
+QToolButton#save { background: #b8662a; border: 1px solid #e08a45; color: #fff4e8; font-weight: bold; padding: 6px 8px; }
+QToolButton#save:hover { background: #c9733a; }
+QToolButton#save:disabled { background: #2c2c2c; border-color: #3a3a3a; color: #777; font-weight: normal; }
+QLabel#unsaved { color: #f5c27a; font-size: 11px; }
 QSpinBox { background: #262626; color: #e6e6e6; border: 1px solid #4a4a4a; border-radius: 3px; font-size: 12px; }
 QSlider::groove:horizontal { height: 4px; background: #444; border-radius: 2px; }
 QSlider::handle:horizontal { background: #9ec3e6; width: 12px; margin: -5px 0; border-radius: 6px; }
@@ -402,12 +406,16 @@ class Drawer(object):
         self.saved_warned = False
         self.panel = None
         self.timer = None
+        self.recovery_timer = None
         try:
             self.timer = QtCore.QTimer()
             self.timer.timeout.connect(self.check_updates)
             self.timer.start(self.UPDATE_CHECK_MS)
-        except Exception:  # no Qt event loop yet (tests): no update checks
-            self.timer = None
+            self.recovery_timer = QtCore.QTimer()
+            self.recovery_timer.setSingleShot(True)
+            self.recovery_timer.timeout.connect(self.write_recovery)
+        except Exception:  # no Qt event loop yet (tests): no update checks, recovery written at once
+            self.timer = self.recovery_timer = None
 
     # ------------------------------------------------------------ sizes
     @property
@@ -440,6 +448,8 @@ class Drawer(object):
                 if os.path.isfile(alt):
                     path = alt
             self.mine[cam] = drawing.Drawings(path, (self.W, self.H), owner=self.user)
+            if self.mine[cam].recovery():
+                QtCore.QTimer.singleShot(0, lambda c=cam: self.offer_recovery(c))   # never inside a paint
         self._ensure_linked(cam)
         return self.mine[cam]
 
@@ -604,19 +614,115 @@ class Drawer(object):
         out += [{"kind": "blue", "key": "b:" + b.path, "row": b} for b in self.blue.get(cam, [])]
         return out
 
-    def save(self):
+    # ------------------------------------------------------------ saving (0.9.0b3)
+    # Changes stay on your screen until Save (Ctrl+S); a private recovery copy
+    # follows every change, so a crash loses almost nothing.
+    RECOVERY_DELAY_MS = 400
+
+    def edited(self):
+        """A change to your drawings: unsaved until Save; recovery copy soon."""
         mine = self.mine_now()
         if mine is None:
             return
-        error = mine.save()
-        if error and not mine.path.startswith(self.fallback_root):
-            mine.path = drawing.layers_path(self.fallback_root, self.user, self.cam())
-            error2 = mine.save()
-            if not self.saved_warned:
-                self.saved_warned = True
-                self.player._flash_message(
-                    "Couldn't save in the shot folder (%s); saving in your home folder" % error
-                    if not error2 else "Couldn't save drawings: %s" % error2, 6.0)
+        mine.dirty = True
+        if self.recovery_timer is not None:
+            self.recovery_timer.start(self.RECOVERY_DELAY_MS)
+        else:
+            self.write_recovery()
+        if self.panel is not None:
+            self.panel.refresh_save()
+
+    def write_recovery(self):
+        for mine in self.mine.values():
+            mine.write_recovery()
+
+    def unsaved(self):
+        """Cameras with unsaved drawings."""
+        return [cam for cam, mine in self.mine.items() if mine.dirty]
+
+    def save_now(self):
+        """Save: your drawings go to the shared file, a new version. Returns
+        True if everything was saved."""
+        ok = True
+        for cam, mine in list(self.mine.items()):
+            if not mine.dirty:
+                continue
+            error = mine.save()
+            if error and not mine.path.startswith(self.fallback_root):
+                mine.path = drawing.layers_path(self.fallback_root, self.user, cam)
+                error2 = mine.save()
+                if not self.saved_warned:
+                    self.saved_warned = True
+                    self.player._flash_message(
+                        "Couldn't save in the shot folder (%s); saved in your home folder" % error
+                        if not error2 else "Couldn't save drawings: %s" % error2, 6.0)
+                ok = ok and not error2
+        if ok:
+            self.player._flash_message("Drawings saved", 2.0)
+        if self.panel is not None:
+            self.panel.refresh_save()
+        self.player.canvas.update()
+        return ok
+
+    def ask_to_save(self, parent, doing="closing"):
+        """Before Stop or closing with unsaved drawings: Save / Don't save /
+        Cancel. True to carry on (saved or discarded), False to cancel."""
+        if not self.unsaved():
+            return True
+        box = QtWidgets.QMessageBox(parent)
+        box.setWindowTitle("bgcache")
+        box.setText("Save your drawings before %s?" % doing)
+        box.setInformativeText("Nobody else sees them until you save.")
+        save = box.addButton("Save", QtWidgets.QMessageBox.AcceptRole)
+        drop = box.addButton("Don't save", QtWidgets.QMessageBox.DestructiveRole)
+        box.addButton("Cancel", QtWidgets.QMessageBox.RejectRole)
+        box.setDefaultButton(save)
+        (getattr(box, "exec", None) or box.exec_)()
+        clicked = box.clickedButton()
+        if clicked is save:
+            return self.save_now()
+        if clicked is drop:
+            for mine in self.mine.values():
+                if mine.dirty:
+                    mine.clear_recovery()
+                    mine.dirty = False
+            return True
+        return False
+
+    def offer_recovery(self, cam):
+        """Unsaved drawings left by a session that ended without Save (a
+        crash): offer them back, once, when that camera's drawings open."""
+        mine = self.mine.get(cam)
+        data = mine.recovery() if mine is not None else None
+        if not data:
+            return
+        when = time.strftime("%a %H:%M", time.localtime(data.get("written") or time.time()))
+        box = QtWidgets.QMessageBox(self.player)
+        box.setWindowTitle("bgcache")
+        box.setText("Unsaved drawings from %s were found (%s)." % (when, cam))
+        box.setInformativeText("bgcache kept them when the last session ended without Save. "
+                               "Recover them? They stay unsaved until you press Save.")
+        rec = box.addButton("Recover", QtWidgets.QMessageBox.AcceptRole)
+        box.addButton("Discard", QtWidgets.QMessageBox.DestructiveRole)
+        (getattr(box, "exec", None) or box.exec_)()
+        if box.clickedButton() is rec:
+            mine.recover(data)
+            self.changed()
+            if self.panel is not None:
+                self.panel.refresh_save()
+        else:
+            mine.clear_recovery()
+
+    def restore_version(self, path):
+        mine = self.mine_now()
+        if mine is None:
+            return
+        error = mine.restore(path)
+        self.player._flash_message("Couldn't restore: %s" % error if error else "Earlier drawings restored and saved",
+                                   5.0 if error else 3.0)
+        self.changed()
+        if self.panel is not None:
+            self.panel.refresh_save()
 
     # ------------------------------------------------------------ people / Blue Pencil
     def find_people(self, cam=None, include_me=False):
@@ -654,7 +760,7 @@ class Drawer(object):
         lid = mine.duplicate_layer(layer, "%s: %s (copy)" % (user, layer["name"]),
                                    {"user": user, "layer": layer["name"]})
         self.selected = None
-        self.save()
+        self.edited()
         self.player._flash_message("Copied %s's %s into your layers: edit it there" % (user, layer["name"]))
         self.changed()
         return lid
@@ -704,7 +810,7 @@ class Drawer(object):
                 continue
             if row["kind"] == "mine":
                 row["layer"].update(values)
-                self.save()
+                self.edited()
             elif row["kind"] == "person":
                 view = row["row"]["view"].setdefault(row["layer"]["id"], {})
                 for name in ("visible", "opacity"):
@@ -745,7 +851,7 @@ class Drawer(object):
     def undo(self):
         mine = self.mine_now()
         if mine and mine.undo():
-            self.save()
+            self.edited()
             self.changed()
             return True
         if mine:
@@ -755,7 +861,7 @@ class Drawer(object):
     def redo(self):
         mine = self.mine_now()
         if mine and mine.redo():
-            self.save()
+            self.edited()
             self.changed()
             return True
         if mine:
@@ -772,7 +878,7 @@ class Drawer(object):
             self.player._flash_message("Can't clear: %s" % why)
             return
         if mine.clear_frame(frame, self.hold):
-            self.save()
+            self.edited()
             self.changed()
 
     # ------------------------------------------------------------ input
@@ -856,7 +962,7 @@ class Drawer(object):
         if self.erasing:
             self.erasing = False
             mine.end_group()
-            self.save()
+            self.edited()
             self.changed()
             return
         if self.stroke is None:
@@ -867,7 +973,7 @@ class Drawer(object):
             if pos is not None and len(stroke["p"]) > 1:
                 stroke["p"].append([round(pos[0], 2), round(pos[1], 2), stroke["p"][-1][2]])
         if mine.add_stroke(self.frame, stroke):
-            self.save()
+            self.edited()
         self.changed()
 
     # ------------------------------------------------------------ painting
@@ -1295,8 +1401,7 @@ class LayerRow(QtWidgets.QFrame):
         d = self.panel.drawer
         if self.mine:
             d.selected = None
-            d.mine_now().active = self.row["layer"]["id"]
-            d.save()
+            d.mine_now().active = self.row["layer"]["id"]     # picking a layer isn't a change to save
         else:
             d.selected = self.key           # imported: select it (for the trash button)
         self.panel.refresh()
@@ -1308,7 +1413,7 @@ class LayerRow(QtWidgets.QFrame):
         name, ok = QtWidgets.QInputDialog.getText(self, "Rename layer", "Name:", text=layer["name"])
         if ok and name.strip():
             self.panel.drawer.mine_now().rename_layer(layer["id"], name.strip())
-            self.panel.drawer.save()
+            self.panel.drawer.edited()
             self.panel.refresh()
 
 
@@ -1346,8 +1451,74 @@ class DrawPanel(QtWidgets.QWidget):
         self.hint.setObjectName("hint")
         self.hint.setWordWrap(True)
         lay.addWidget(self.hint)
+        self._build_save(lay)
         self.setVisible(False)
         self.refresh()
+
+    def _build_save(self, lay):
+        """Save at the bottom (0.9.0b3): nothing is shared until you save."""
+        self.unsaved_label = QtWidgets.QLabel("\u25cf Unsaved: only you see these changes until you save")
+        self.unsaved_label.setObjectName("unsaved")
+        self.unsaved_label.setWordWrap(True)
+        lay.addWidget(self.unsaved_label)
+        row = QtWidgets.QHBoxLayout()
+        self.b_save = _button("Save drawings  (Ctrl+S)", "Save your drawings: others see them after they press Update",
+                              object_name="save")
+        self.b_save.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
+        self.b_save.clicked.connect(self.drawer.save_now)
+        self.b_history = _button("History", "Your earlier saves of this camera's drawings: restore one")
+        self.b_history.clicked.connect(self.show_history)
+        row.addWidget(self.b_save, 1)
+        row.addWidget(self.b_history)
+        lay.addLayout(row)
+
+    def refresh_save(self):
+        mine = self.drawer.mine_now()
+        dirty = bool(mine is not None and mine.dirty)
+        self.unsaved_label.setVisible(dirty)
+        self.b_save.setEnabled(dirty)
+        self.b_history.setEnabled(mine is not None and os.path.isfile(mine.path))
+
+    def show_history(self):
+        """Your earlier saves, newest first; Restore brings one back (and is
+        itself a save, so it can be undone the same way)."""
+        mine = self.drawer.mine_now()
+        if mine is None:
+            return
+        dlg = QtWidgets.QDialog(self)
+        dlg.setWindowTitle("Drawing history")
+        dlg.setStyleSheet(DRAW_STYLE + "QDialog { background: #2c2c2c; } QListWidget { background: #1e1e1e; color: #e6e6e6; border: 1px solid #444; }")
+        lay = QtWidgets.QVBoxLayout(dlg)
+        head = QtWidgets.QLabel("Your saves of %s, newest first. The last %d are kept; a restore is a save "
+                                "too, so it can be undone." % (self.drawer.cam(), drawing.VERSIONS_KEPT))
+        head.setWordWrap(True)
+        lay.addWidget(head)
+        lst = QtWidgets.QListWidget()
+        versions = mine.versions()
+        for v in versions:
+            when = time.strftime("%a %d %b %H:%M", time.localtime(v["saved"]))
+            frames = "frames %d-%d" % v["frames"] if v["frames"] else "no drawings"
+            lst.addItem("%s  \u00b7  %s%s" % (when, frames, "   (current)" if v["current"] else ""))
+        lay.addWidget(lst, 1)
+        row = QtWidgets.QHBoxLayout()
+        restore = _button("Restore", "Bring this version back and save it")
+        close = _button("Close")
+        row.addStretch(1)
+        row.addWidget(restore)
+        row.addWidget(close)
+        lay.addLayout(row)
+        close.clicked.connect(dlg.reject)
+
+        def go():
+            i = lst.currentRow()
+            if 0 < i < len(versions):
+                self.drawer.restore_version(versions[i]["path"])
+                dlg.accept()
+        restore.clicked.connect(go)
+        lst.currentRowChanged.connect(lambda i: restore.setEnabled(0 < i < len(versions)))
+        restore.setEnabled(False)
+        dlg.resize(420, 320)
+        (getattr(dlg, "exec", None) or dlg.exec_)()
 
     def _build_tool_and_size(self, lay):
         """Tool (Pen / Eraser) and Size."""
@@ -1532,14 +1703,14 @@ class DrawPanel(QtWidgets.QWidget):
         mine = self.drawer.mine_now()
         if mine:
             mine.add_layer()
-            self.drawer.save()
+            self.drawer.edited()
             self.drawer.changed()
 
     def move_layer(self, delta):
         mine = self.drawer.mine_now()
         if mine and mine.active:
             mine.move_layer(mine.active, delta)
-            self.drawer.save()
+            self.drawer.edited()
             self.drawer.changed()
 
     def delete_layer(self):
@@ -1563,7 +1734,7 @@ class DrawPanel(QtWidgets.QWidget):
             if answer != QtWidgets.QMessageBox.Yes:
                 return
         mine.delete_layer(layer["id"])
-        self.drawer.save()
+        self.drawer.edited()
         self.drawer.changed()
 
     def opacity_popup(self, key, button):
@@ -1731,11 +1902,13 @@ class DrawPanel(QtWidgets.QWidget):
         self.hint.setText("Scrub: %s + drag or middle-drag · Step: %s / %s · Drawings: %s / %s\n(your Maya hotkeys)" % (
             self.keymap.label("scrub"), self.keymap.label("prev_frame"), self.keymap.label("next_frame"),
             prev_key, next_key))
+        self.refresh_save()
         if not rows:
             return
         for _ in range(int(self.rows_box.count())):
             item = self.rows_box.takeAt(0)
             if item.widget():
+                item.widget().hide()          # gone at once, not when Qt gets round to deleting it
                 item.widget().deleteLater()
         for row in d.rows():
             self.rows_box.addWidget(HeadRow(self, row) if row["kind"] in ("me", "head") else LayerRow(self, row))

@@ -24,15 +24,21 @@ read-only: you see the version you accepted (a snapshot in your prefs
 folder) until you press Update; to change one, duplicate the layer into
 your own file. Nothing here ever writes to another person's folder.
 
-Each save bumps "rev" (so others notice a new version even within the same
+Saving (0.9.0b3): your drawings are written to that shared file only when
+you press Save (Ctrl+S): until then strokes, undo and redo stay on your
+screen. While you draw, a private recovery copy is kept up to date in
+~/.bgcache/recovery (never shared), so a crash loses almost nothing. Each
+save bumps "rev" (so others notice a new version even within the same
 second), gives new folders and the file the same permissions as the folder
-they're in (so everyone can read them), and keeps a backup of the previous
-file once per sitting in history/ next to it.
+they're in (so everyone can read them), and first keeps the version it
+replaces in history/ next to it: the last VERSIONS_KEPT saves, listed by
+versions() and brought back by restore().
 
 This module has no Qt: the player draws strokes and builds the side strip.
 """
 import copy
 import getpass
+import hashlib
 import json
 import os
 import re
@@ -41,8 +47,7 @@ import time
 from bgcache import common, profile
 
 VERSION = 2
-BACKUP_EVERY_S = 600        # one backup per sitting: a new one after 10 min
-BACKUPS_KEPT = 20
+VERSIONS_KEPT = 10          # earlier saves kept in history/ (user: small folders)
 COLORS = ["#e85d4a", "#e8c547", "#4cc3e0", "#f2f2f2", "#000000"]   # red, yellow, cyan, white, black
 COLOR_NAMES = ["red", "yellow", "cyan", "white", "black"]
 UNDO_LIMIT = 200
@@ -218,7 +223,7 @@ class Drawings(object):
         self.source = {}           # what this file is: for an import snapshot, whose and which rev
         self.error = ""
         self.blocked = ""          # why the last undo/redo didn't happen (a locked layer)
-        self.last_backup = 0.0
+        self.dirty = False         # changed since the last Save (only you see the changes)
         self.load()
         if not self.layers and not read_only:
             self.layers = [new_layer("Layer 1", "l1")]
@@ -236,6 +241,11 @@ class Drawings(object):
         if not data:
             return False
         self.rev = int(data.get("rev") or 0)
+        return self._apply(data)
+
+    def _apply(self, data):
+        """Take layers (and the active layer) from a drawings file's data,
+        scaled to our frame size."""
         size = data.get("frame_size") or self.frame_size
         layers = [l for l in data.get("layers") or [] if isinstance(l, dict) and "id" in l]
         if size and list(size) != list(self.frame_size) and size[0]:
@@ -264,14 +274,15 @@ class Drawings(object):
             return False
 
     def save(self):
-        """Write your layers. Returns "" or the reason it couldn't."""
+        """Save: write your layers to the shared file (others see them after
+        Update). Returns "" or the reason it couldn't."""
         if self.read_only:
             return "read-only"
         try:
             folder = os.path.dirname(self.path)
             if not os.path.isdir(folder):
                 make_dirs(folder)
-            self._backup()
+            self._keep_version()
             on_disk = file_rev(self.path)
             self.rev = max(self.rev, on_disk[0] if on_disk else 0) + 1
             data = {"version": VERSION, "rev": self.rev, "frame_size": self.frame_size,
@@ -281,6 +292,8 @@ class Drawings(object):
             match_parent_mode(self.path)
             self.mtime = os.path.getmtime(self.path)
             self.error = ""
+            self.dirty = False
+            self.clear_recovery()
         except (IOError, OSError) as error:
             self.error = str(error)
         return self.error
@@ -288,26 +301,105 @@ class Drawings(object):
     def history_dir(self):
         return os.path.join(os.path.dirname(self.path), "history")
 
-    def _backup(self):
-        """Before saving over the file: keep a copy of it once per sitting
-        (a new copy after BACKUP_EVERY_S without one). Never raises."""
-        now = time.time()
-        if now - self.last_backup < BACKUP_EVERY_S or not os.path.isfile(self.path):
+    def _keep_version(self):
+        """Before a save replaces the file: keep it in history/ as a version
+        (the last VERSIONS_KEPT). Never raises."""
+        if not os.path.isfile(self.path):
             return
         try:
             folder = self.history_dir()
             if not os.path.isdir(folder):
                 make_dirs(folder)
+            now = time.time()
             target = os.path.join(folder, "layers_%s_%03d.json" % (time.strftime("%Y%m%d_%H%M%S"),
                                                                    int(now * 1000) % 1000))
             with open(self.path, "rb") as src, open(target, "wb") as dst:
                 dst.write(src.read())
             match_parent_mode(target)
-            self.last_backup = now
             old = sorted(f for f in os.listdir(folder) if f.startswith("layers_") and f.endswith(".json"))
-            for name in old[:-BACKUPS_KEPT]:
+            for name in old[:-VERSIONS_KEPT]:
                 os.remove(os.path.join(folder, name))
-        except (IOError, OSError):
+        except (IOError, OSError) as error:   # a missing history never stops a save
+            self.error = "history not kept: %s" % error
+
+    def versions(self):
+        """Your saves, newest first: dicts with path, saved (time), frames
+        (first, last drawn) and current (the file others see)."""
+        out = []
+        paths = [self.path]
+        folder = self.history_dir()
+        if os.path.isdir(folder):
+            paths += sorted((os.path.join(folder, f) for f in os.listdir(folder)
+                             if f.startswith("layers_") and f.endswith(".json")), reverse=True)
+        for i, path in enumerate(paths):
+            try:
+                with open(path) as handle:
+                    data = json.load(handle)
+            except (IOError, OSError, ValueError):
+                continue                  # unreadable or not saved yet: not listed
+            keys = sorted(int(k) for layer in data.get("layers") or [] for k in (layer.get("frames") or {})
+                          if (layer.get("frames") or {}).get(k))
+            out.append({"path": path, "saved": data.get("saved") or os.path.getmtime(path),
+                        "frames": (keys[0], keys[-1]) if keys else None, "current": i == 0})
+        return out
+
+    def restore(self, path):
+        """Bring back an earlier save: it becomes your drawings and is saved
+        again (the one it replaces is kept, so a restore can be undone).
+        Returns "" or the reason it couldn't."""
+        try:
+            with open(path) as handle:
+                data = json.load(handle)
+        except (IOError, OSError, ValueError) as error:
+            return "couldn't read that version: %s" % error
+        self._record(("layers", (copy.deepcopy(self.layers), self.active)))
+        self._apply(data)
+        return self.save()
+
+    # ------------------------------------------------------------ recovery
+    def recovery_path(self):
+        """A private copy of your unsaved drawings, in your own ~/.bgcache."""
+        key = hashlib.sha1(os.path.abspath(self.path).encode("utf-8")).hexdigest()[:16]
+        return os.path.join(os.path.expanduser("~"), ".bgcache", "recovery", "%s.json" % key)
+
+    def write_recovery(self):
+        """Keep the recovery copy up to date while you draw. Never raises."""
+        if self.read_only or not self.dirty:
+            return
+        try:
+            path = self.recovery_path()
+            folder = os.path.dirname(path)
+            if not os.path.isdir(folder):
+                os.makedirs(folder)
+            common.write_json_atomic(path, {"version": VERSION, "for": os.path.abspath(self.path),
+                                            "frame_size": self.frame_size, "active": self.active,
+                                            "written": time.time(), "base_rev": self.rev,
+                                            "layers": self.layers})
+        except (IOError, OSError) as error:   # recovery is a safety net: drawing carries on
+            self.error = "recovery copy not written: %s" % error
+
+    def recovery(self):
+        """The recovery copy's data if one is waiting for this file (unsaved
+        drawings from a session that ended without Save), else None."""
+        try:
+            with open(self.recovery_path()) as handle:
+                data = json.load(handle)
+        except (IOError, OSError, ValueError):
+            return None
+        if data.get("for") != os.path.abspath(self.path):
+            return None
+        return data
+
+    def recover(self, data):
+        """Take the recovery copy's drawings (still unsaved: Save to share)."""
+        self._record(("layers", (copy.deepcopy(self.layers), self.active)))
+        self._apply(data)
+        self.dirty = True
+
+    def clear_recovery(self):
+        try:
+            os.remove(self.recovery_path())
+        except OSError:                       # no recovery copy: nothing to clear
             pass
 
     # ------------------------------------------------------------ layers

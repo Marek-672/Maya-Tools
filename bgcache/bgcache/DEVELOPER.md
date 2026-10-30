@@ -33,7 +33,7 @@ test and build it.
 | `controller_refplane.py` | `RefPlaneMixin`: the player's reference movie as an image plane in your Maya. |
 | `scene.py` | Plain functions that read your scene and Maya: cameras, viewport settings and renderer, image planes, sound, GPU Override, path curves, anim curve data, where Maya and mayapy are, the hidden Maya's preferences folder. No state, except `DISPLAY_SOURCE`. |
 | `hotkeys.py` | Reads your Maya hotkeys, so the player's keys match. |
-| `install.py`, `update.py` | Shelf setup; Help > Check for updates (the studio's releases folder, or GitHub releases: the only network code) and Update and restart. |
+| `install.py`, `update.py` | Shelf setup; Help > Check for updates (the studio's releases folder or list of folders, or GitHub releases) and Update and restart. |
 | `selftest.py` | Help > Self-test (runs in both Mayas). |
 
 Before 0.8.0b21 everything above (except hotkeys, install, update, selftest)
@@ -56,7 +56,8 @@ are the same objects as in `scene.py`.
 | File | What's in it |
 |---|---|
 | `player.py` | `Player`: the window (`_build_ui` and its `_build_*` parts), playback, the cache bar, sync with your Maya, focus range, health banners, studio update check. `main()` is the mayapy entry. |
-| `drawui.py`, `drawing.py` | Drawing: the strip (`DrawPanel`), pen input, painting, layers, Blue Pencil export/import. |
+| `drawui.py`, `drawing.py` | Drawing: the strip (`DrawPanel`), pen input, painting, layers, Blue Pencil export/import. Since 0.9.0b3 edits mark the drawings dirty (`Drawer.edited`) and write a recovery copy; only `save_now` (Save, Ctrl+S) writes the shared file, keeping the last 10 versions (`Drawing.versions`, `restore`). |
+| `report.py` | Help > Report a problem: gathers the logs into a zip, Hide names, Save, and Send to the profile's `reports_url`. With `update.py`, the only code that goes online, and only on a click. |
 | `continuity/` | The Full edition's neighbour shots (`reel.py`, `resolver.py`, `ui.py`). The Simple edition is built without this folder; `player.py` falls back to `NoContinuity`. |
 | `audio.py`, `widgets.py`, `theme.py` | Sound, small shared widgets, the dark look. |
 

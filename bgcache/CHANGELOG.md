@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.9.0 beta 3
+
+- **Drawings are shared when you save, not as you draw (changed).** Your
+  drawings stay yours until you click **Save drawings** at the bottom of the
+  Draw panel, or press **Ctrl+S**. Until then the panel says "Unsaved" and
+  the DRAW tag on the picture shows a dot. Stopping or closing the player
+  asks whether to save.
+- **Drawing history:** each save keeps the drawings before it (the newest
+  10). **History...** lists them; **Restore** puts one back.
+- **Recovery:** an unsaved copy is kept while you draw, so after a crash
+  BGCache offers your unsaved drawings back.
+- **Help > Report a problem:** describe what happened; the logs, versions
+  and Self-test are added, and you see the list first. **Hide names** keeps
+  scene and user names out. Save the report and attach it to a GitHub issue.
+- **Fixed:** a camera that sees nothing no longer leaves the hidden Maya's
+  window showing.
+- For studios: continuity footage with the version in the file name, and
+  .mp4; the releases folder can be a list of folders.
+
 ## 0.9.0 beta 2
 
 - **Updates only when you ask:** Help > Check for updates looks for a newer

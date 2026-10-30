@@ -128,6 +128,7 @@ class Worker(object):
         self.edits = []          # recent edits, for turnaround timing in the log
         self.render_hidden = False
         self.render_checked = False
+        self.render_checked_cams = set()   # cameras whose first frames were checked
         self.envirs = False          # environment never drawn in the cache (Envirs removed in 0.6.9)
         self.plugin_filters = {}
         self.timing = None        # startup stage times, logged once after the first frames
@@ -640,18 +641,43 @@ class Worker(object):
         return True
 
     def _check_render(self, cam, frames):
-        """Once, after the first chunk: if frames are blank while the render
-        window is minimized, restore the window and render them again."""
-        if self.render_checked or not frames:
+        """After a camera's first chunk: if its frames are one flat colour
+        while the render window is minimized, find out why. Some graphics
+        setups draw nothing in a minimized window; but an empty view (a new
+        camera looking at nothing) is flat too (0.9.0b3: that used to leave
+        the window open for the rest of the session). So one frame is drawn
+        again with the window shown: a picture there means the window must
+        stay visible; flat again means the view is just empty, so the window
+        goes back down and the next camera is checked the same way."""
+        if self.render_checked or not frames or cam in self.render_checked_cams:
             return
-        self.render_checked = True
+        self.render_checked_cams.add(cam)
         path = common.frame_path(self.session, min(frames), cam)
-        if self.render_hidden and self._blank(path):
-            cmds.window("bgcacheRenderWin", edit=True, iconify=False)
-            self.render_hidden = False
-            self.cams[cam]["dirty"].update(frames)
-            log("frames were blank with the render window minimized; restored it "
-                "(this graphics setup needs it visible) and re-rendering")
+        if not self.render_hidden:
+            self.render_checked = True
+            return
+        if not self._blank(path):
+            self.render_checked = True          # minimized draws fine: stop checking
+            return
+        cmds.window("bgcacheRenderWin", edit=True, iconify=False)
+        test = os.path.join(self.p["tmp"], "blankcheck")
+        frame = min(frames)
+        try:
+            self._playblast(test, frame, frame)
+            shown_blank = self._blank("%s.%04d.jpg" % (test, frame))
+        except Exception as error:
+            log("blank-frame check: test frame failed (%s); keeping the render window visible" % error)
+            shown_blank = False
+        if shown_blank:
+            cmds.window("bgcacheRenderWin", edit=True, iconify=True)
+            log("frames of %s are one flat colour with the render window shown too: the view is "
+                "empty, nothing to fix (window minimized again)" % cam.split("|")[-1])
+            return
+        self.render_hidden = False
+        self.render_checked = True
+        self.cams[cam]["dirty"].update(frames)
+        log("frames were blank with the render window minimized; restored it "
+            "(this graphics setup needs it visible) and re-rendering")
 
     def _switch_off_tools(self, force=False):
         """Tools the pipeline profile switches off in the background Maya

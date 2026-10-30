@@ -26,7 +26,7 @@ If the scene has unsaved changes, it exports a private copy for the background M
 
 ## The player window
 
-Top to bottom: a toolbar (the menus **bgcache** (Push selected, Restart bgcache, Stop bgcache), **View** (Film gate: darkens what's outside the camera's film gate; Show drawings; Keep on top; and under Sound: Sound while scrubbing, Sync test, Reset sound offset) and **Help** (Self-test, Check for updates, About); then the Camera dropdown, Draw, the three cache buttons **Refresh**, **Reload scene** and **Re-render all**, and Pause), the continuity strip (its header has the **Continuity** switch, **Update footage** and **Untick all**), the picture (camera and sound bottom-left, frame number bottom-right), the cache bar, and the playback bar: Maya-style playback buttons (start, step frame, step key, play backwards/forwards, end), then **Loop**, **Sound** and **Sync**. Buttons that switch something on are lit (blue with a bright outline) while it's on. The step-key buttons step through the keys of your selection in Maya, like Maya's own.
+Top to bottom: a toolbar (the menus **bgcache** (Push selected, Restart bgcache, Stop bgcache), **View** (Film gate: darkens what's outside the camera's film gate; Show drawings; Keep on top; and under Sound: Sound while scrubbing, Sync test, Reset sound offset) and **Help** (Self-test, Report a problem, Check for updates, About); then the Camera dropdown, Draw, the three cache buttons **Refresh**, **Reload scene** and **Re-render all**, and Pause), the continuity strip (its header has the **Continuity** switch, **Update footage** and **Untick all**), the picture (camera and sound bottom-left, frame number bottom-right), the cache bar, and the playback bar: Maya-style playback buttons (start, step frame, step key, play backwards/forwards, end), then **Loop**, **Sound** and **Sync**. Buttons that switch something on are lit (blue with a bright outline) while it's on. The step-key buttons step through the keys of your selection in Maya, like Maya's own.
 
 ## Continuity
 
@@ -145,6 +145,8 @@ The player uses your own Maya hotkeys, read at Start: step a frame (Alt+, / Alt+
 
 Layers: your layers are under your name; the pen draws on the highlighted one (orange pen mark). Add, move up/down, delete (undoable), hide, rename by double-click, and each row's circle icon sets its opacity. The padlock locks a layer (orange, closed; the row dims): no drawing, erasing, clearing, undo/redo or deleting on it until you unlock it (grey, open). Drawings are saved per person and camera: `<drawings folder>/<user>/drawings/<camera>/layers.json`. In a studio shot the drawings folder comes from the profile's `drawings_folder` (e.g. `/projects/<show>/<shot>/maya/bgcache`); otherwise it's `<Maya project>/bgcache/<scene name>`, or `<scene folder>/bgcache/<scene name>` for a scene outside the project. The scene name leaves out its version number, so `walk_v003` and `walk_v004` share drawings. If that folder can't be written: `~/.bgcache/drawings/`. Orange ticks (the full height of the cache bar, with a dark edge) mark drawn frames; **Drawings** in the toolbar hides all drawings.
 
+**Saving (since 0.9.0b3).** Drawings are written to that file only when you click **Save drawings** at the bottom of the strip, or press **Ctrl+S** (in Draw mode or not). Until then nobody else sees your changes: the strip says "● Unsaved: only you see these changes until you save", and the DRAW tag on the picture shows a ●. Stop and closing the player ask Save / Don't save / Cancel. Each save keeps the drawings it replaces, the newest 10 (in `history/` next to `layers.json`): **History...** lists them by time, with how many frames each has; **Restore** brings one back (as a new save; Undo takes it back). While you draw, an unsaved copy is kept in `~/.bgcache/recovery/`; if Maya or the player crashes before you save, the next time you open those drawings bgcache offers to bring them back. Saving clears that copy.
+
 **Import** lists the other people with drawings for this shot and camera. Tick a name and they appear under their own heading, one row per layer, each with its own eye and opacity (your view only). Their layers are always locked: **Duplicate** (the copy icon on a row) copies one into your layers as "name: layer (copy)" for you to edit; their file is never touched. Tell them, and they see your layer in their Import like anyone else's.
 
 What you see of someone stays as it is, also after closing and reopening the player, until you choose: when they save newer drawings their heading turns orange with **Update**; after updating it shows **Revert** (back to what you had) until their next update. Untick, × on the heading, or select a row and press the trash button to remove someone from your list (their files are untouched).
@@ -166,6 +168,10 @@ If your studio launches Maya through a wrapper, pass the commands:
 ```python
 bgc.shelf_click(maya_cmd=["/path/to/maya_wrapper"], mayapy_cmd=["/path/to/mayapy_wrapper"])
 ```
+
+## Report a problem
+
+In the player, **Help > Report a problem**: write what happened (and an email if you'd like an answer). The report adds your versions and system, this session's `worker.log`, `player.log` and `trace.log` (the end of each), the newest Self-test and the player settings, and lists them before anything leaves. **Hide names** (on) replaces the show, sequence, shot, scene and your user name with SHOW / SEQ / SHOT / SCENE / USER. **Save report...** writes a zip to pass on. **Send** appears only when whoever set bgcache up has switched it on (the profile's `reports_url`); then the report goes straight to them.
 
 ## Self-test
 

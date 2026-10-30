@@ -30,13 +30,16 @@ class T:
     def timeout(s): return types.SimpleNamespace(connect=lambda f: None)
 qc.QTimer = T; qt.QtCore = qc; sys.modules["PySide2"] = qt; sys.modules["PySide2.QtCore"] = qc
 qg = types.ModuleType("PySide2.QtGui"); qw = types.ModuleType("PySide2.QtWidgets"); qt.QtGui = qg; qt.QtWidgets = qw
-blank = {"on": False}
+blank = {"on": False, "empty": False}
 class QImage:
-    def __init__(s, path): s.path = path
+    # "on": this graphics setup draws nothing while the render window is
+    # minimized (reads blank only while it is); "empty": the view itself is
+    # empty (blank either way)
+    def __init__(s, path): s.path = path; s.flat = blank["empty"] or (blank["on"] and win["iconify"] is not False)
     def isNull(s): return False
     def width(s): return 64
     def height(s): return 36
-    def pixel(s, x, y): return 0 if blank["on"] else x * 1000 + y
+    def pixel(s, x, y): return 0 if s.flat else x * 1000 + y
 qg.QImage = QImage
 sys.modules["PySide2.QtGui"] = qg; sys.modules["PySide2.QtWidgets"] = qw
 sys.modules["shiboken2"] = types.ModuleType("shiboken2")
@@ -99,9 +102,21 @@ assert order[0] == 15 and 10 in order, order
 assert any(m.startswith("edit synced: 9 frames") for m in LOG), LOG[-3:]
 print("ok: render starts at the frame being worked on:", order, "|", [m for m in LOG if m.startswith("edit synced")][-1])
 
+# --- 0.9.0b3: an empty view (blank with the window shown too) -> window minimized again
+w.render_hidden, w.render_checked, w.render_checked_cams = True, False, set()
+blank["empty"] = True
+win["iconify"] = True
+common.post_message(session, {"op": "dirty", "ranges": [[1, 3]]})
+step()
+assert win["iconify"] is True and w.render_hidden and not w.render_checked
+assert any("the view is empty" in m for m in LOG), LOG[-3:]
+blank["empty"] = False
+print("ok: an empty view is flat with the render window shown too: it goes back down, nothing to fix")
+
 # --- hidden render window gives blank frames -> restored and re-rendered once
-w.render_hidden, w.render_checked = True, False
+w.render_hidden, w.render_checked, w.render_checked_cams = True, False, set()
 blank["on"] = True
+win["iconify"] = True
 common.post_message(session, {"op": "dirty", "ranges": [[1, 3]]})
 step()
 assert win["iconify"] is False and not w.render_hidden

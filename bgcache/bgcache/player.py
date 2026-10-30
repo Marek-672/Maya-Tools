@@ -232,6 +232,59 @@ def _continuity_part():
 # --------------------------------------------------------------------------
 # Player
 # --------------------------------------------------------------------------
+class ReportDialog(QtWidgets.QDialog):
+    """Help > Report a problem: what happened, an optional email, what goes
+    in the report, Hide names, then Send (if switched on) or Save report."""
+
+    def __init__(self, parent, items, can_send):
+        super(ReportDialog, self).__init__(parent)
+        self.setWindowTitle("Report a problem")
+        self.choice = None
+        lay = QtWidgets.QVBoxLayout(self)
+        lay.addWidget(QtWidgets.QLabel("What happened? What were you doing just before?"))
+        self.text = QtWidgets.QPlainTextEdit()
+        self.text.setMinimumSize(420, 110)
+        lay.addWidget(self.text)
+        self.mail = QtWidgets.QLineEdit()
+        self.mail.setPlaceholderText("Your email, if you'd like an answer (optional)")
+        lay.addWidget(self.mail)
+        lay.addWidget(QtWidgets.QLabel("The report holds:"))
+        listing = QtWidgets.QLabel("\n".join(["   \u2022 what you wrote above"] +
+                                             ["   \u2022 %s" % name for name, _p, _t in items]))
+        listing.setToolTip("\n".join(path for _n, path, _t in items if path))
+        lay.addWidget(listing)
+        self.b_hide = QtWidgets.QCheckBox("Hide names (show, sequence, shot, scene and your user name)")
+        self.b_hide.setChecked(True)
+        lay.addWidget(self.b_hide)
+        row = QtWidgets.QHBoxLayout()
+        row.addStretch(1)
+        save = QtWidgets.QPushButton("Save report...")
+        save.clicked.connect(lambda: self._done("save"))
+        row.addWidget(save)
+        if can_send:
+            send = QtWidgets.QPushButton("Send")
+            send.setDefault(True)
+            send.clicked.connect(lambda: self._done("send"))
+            row.addWidget(send)
+        cancel = QtWidgets.QPushButton("Cancel")
+        cancel.clicked.connect(self.reject)
+        row.addWidget(cancel)
+        lay.addLayout(row)
+
+    def _done(self, choice):
+        self.choice = choice
+        self.accept()
+
+    def what(self):
+        return self.text.toPlainText()
+
+    def email(self):
+        return self.mail.text()
+
+    def hide_names(self):
+        return self.b_hide.isChecked()
+
+
 class Player(_continuity_part(), QtWidgets.QWidget):
     def __init__(self, session, controller_pid=None):
         """The player for one session (session folder name); controller_pid:
@@ -440,6 +493,7 @@ class Player(_continuity_part(), QtWidgets.QWidget):
         self.b_help, help_menu = self._menu_word(row, "Help", "Self-test, updates, version")
         help_menu.addAction("Self-test", lambda: self._maya_cmd(
             "selftest", "Self-test running: the report prints in your Maya's Script Editor in about a minute"))
+        help_menu.addAction("Report a problem...", self.report_problem)
         self.help_menu = help_menu
         self._update_item = help_menu.addAction("Check for updates", self.check_for_update)
         self._update_item.setVisible(bool(self._update_source()))
@@ -626,6 +680,38 @@ class Player(_continuity_part(), QtWidgets.QWidget):
                 act.triggered.connect(lambda checked=False, fn=slot: fn())
             self.help_menu.insertAction(self._update_sep, act)
             self._update_lines.append(act)
+
+    # ---------------------------------------------------------------- reports
+    def report_problem(self):
+        """Help > Report a problem: what you write, plus the logs, in one zip.
+        You see the list first. Send only when the profile has reports_url."""
+        from bgcache import report
+        edition = "full" if self.has_continuity else "simple"
+        items = report.gather(self.session, self.cfg, __version__, edition)
+        dialog = ReportDialog(self, items, bool((self.cfg or {}).get("reports_url")))
+        (getattr(dialog, "exec", None) or dialog.exec_)()
+        if not dialog.choice:
+            return None
+        names = report.names_to_hide(self.cfg) if dialog.hide_names() else None
+        data = report.build(items, dialog.what(), dialog.email(), names)
+        name = report.file_name(__version__)
+        if dialog.choice == "send":
+            self._flash_message("Sending the report...")
+            self._run_in_background(
+                lambda: dict(zip(("ok", "message"), report.send(self.cfg["reports_url"], data, name, __version__))),
+                self._report_sent)
+            return "send"
+        start = os.path.join((self.cfg or {}).get("reports_folder") or os.path.expanduser("~"), name)
+        path = QtWidgets.QFileDialog.getSaveFileName(self, "Save report", start, "Zip (*.zip)")[0]
+        if path:
+            report.save(data, path)
+            self._flash_message("Report saved: %s" % os.path.basename(path))
+        return path
+
+    def _report_sent(self, result):
+        self._flash_message(result.get("message") or "Couldn't send the report")
+        if not result.get("ok"):
+            print("bgcache player: report %s (use Help > Report a problem > Save report...)" % result.get("message"))
 
     def _open_url(self, url):
         QtGui.QDesktopServices.openUrl(QtCore.QUrl(url))
@@ -1441,6 +1527,8 @@ class Player(_continuity_part(), QtWidgets.QWidget):
     def stop_bgcache(self):
         """bgcache > Stop: your Maya stops the background Maya
         and closes this player."""
+        if not self.test_mode and not self.drawer.ask_to_save(self, "stopping bgcache"):
+            return
         self._close_quietly = True
         self.send_cmd("stop")
         self._flash_message("Stopping bgcache")
@@ -1509,6 +1597,9 @@ class Player(_continuity_part(), QtWidgets.QWidget):
                 event.ignore()
                 self.stop_bgcache()           # also works when your Maya is frozen
                 return
+            if not self.drawer.ask_to_save(self, "closing the player"):
+                event.ignore()
+                return
         self.sound.stop()
         super(Player, self).closeEvent(event)
 
@@ -1540,6 +1631,9 @@ class Player(_continuity_part(), QtWidgets.QWidget):
                 return
         alt, ctrl, shift = (bool(event.modifiers() & m) for m in
                             (Qt.AltModifier, Qt.ControlModifier, Qt.ShiftModifier))
+        if ctrl and key == Qt.Key_S and not shift:
+            self.drawer.save_now()           # b3: drawings are shared on Save
+            return
         if self.drawer.on and ctrl and key == Qt.Key_Z:
             (self.drawer.redo if shift else self.drawer.undo)()
             return
@@ -1865,7 +1959,8 @@ class Player(_continuity_part(), QtWidgets.QWidget):
         if self.drawer.on and live and not ref:
             mine = self.drawer.mine_now()
             layer = mine.active_layer() if mine else None
-            tag_y = self._overlay_tag(p, target, "DRAW · %s" % (layer["name"] if layer else "-"))
+            dot = " ●" if mine is not None and mine.dirty else ""     # unsaved
+            tag_y = self._overlay_tag(p, target, "DRAW · %s%s" % (layer["name"] if layer else "-", dot))
         if live and not ref and getattr(self, "paused", False):
             tag_y = self._overlay_tag(p, target, "PAUSED", y=tag_y, pause_icon=True)
         if live and not self.sync:            # easy to miss otherwise (studio, b11)

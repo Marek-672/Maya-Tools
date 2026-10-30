@@ -34,7 +34,7 @@ and can be used in the other templates too.
 | `shot_folder` | Where one shot's folder is, e.g. `/projects/{show}/shots/{shot}`. A scene saved anywhere inside it belongs to that shot: that turns on continuity and the shared drawings folder. | `""` (no shots) |
 | `sequence_from_shot` | When `shot_folder` has no `{sequence}`: read it from the shot name. `{sequence}_*` = everything before the first `_` (`sq010_0040` is in `sq010`). | `"{sequence}_*"` |
 | `drawings_folder` | Where everyone's drawings for a shot go, e.g. `{shot_folder}/review/bgcache`. Each person writes only their own file under it. | `""`: next to the scene, or `<Maya project>/bgcache/<scene name>` |
-| `departments` | Footage the continuity strip can show, one entry per department: `name`, `base_path` (folder holding the versions), `version_pattern` (version folder names, `*` = anything, ending `_v<number>`), `source_type` (`image_sequence` or `single_movie`, a `.mov` in the version folder). | `[]` |
+| `departments` | Footage the continuity strip can show, one entry per department: `name`, `base_path` (folder holding the versions), `version_pattern` (version names, `*` = anything, ending `_v<number>`: version folders, or since 0.9.0b3 files side by side such as `shot_v004.mov` or `shot_v004.1001.jpg`; a folder wins when both have a number), `source_type` (`image_sequence` or `single_movie`: a `.mov`, `.mp4` or `.m4v`). | `[]` |
 | `departments_file` | Optional JSON file with its own `departments` list (and `ffmpeg_path`) that replaces the one above, e.g. a file shared with another tool. Only read. | `""` |
 | `auto_order` | Auto picks the first department with footage, in this order; departments not listed follow in their listed order. | `[]` |
 | `movie_slate_frames` | Department movies start with this many slate frames. A movie exactly that much longer than the shot has them skipped. | `0` |
@@ -47,8 +47,10 @@ and can be used in the other templates too.
 | `background_viewport_renderer` | The hidden Maya draws the cache with the same viewport renderer as your shot camera's view: Viewport 2.0, plus your studio's render override if the view uses one. `false`: always Maya's standard Viewport 2.0. | `true` |
 | `before_playblast` | Your studio's own playblast set-up, run in the hidden Maya once its render view is made: `"module.function"` (called with the panel name, or with no arguments). | `""` |
 | `viewport_plugins` | Plug-ins that provide your studio's viewport render override, loaded in the hidden Maya (plug-ins with "viewport" in their name are found by themselves). | `[]` |
-| `releases_folder` | Studio only: a folder of release zips (`bgcache_<version>.zip`, `bgcache/` at the top). **Help > Check for updates** looks here (only when the artist clicks it: nothing checks or installs by itself) and offers **Update and restart** (no Maya restart, no installer). When set, it's the only place looked at. The installed copy must be in a folder the artist can write to (the drag-and-drop install is). | `""` |
-| `github_releases` | Without a releases folder, **Help > Check for updates** asks this GitHub repository for the newest bgcache release (bgcache's only network use, and only on that click). Set it to `""` to switch the check off, e.g. on machines without internet. | `"Marek-672/Maya-Tools"` |
+| `releases_folder` | Studio only: a folder of release zips (`bgcache_<version>.zip`, `bgcache/` at the top), or a list of folders tried in order (e.g. one every site sees at once, then an older one). **Help > Check for updates** looks here (only when the artist clicks it: nothing checks or installs by itself) and offers **Update and restart** (no Maya restart, no installer). When set, it's the only place looked at. The installed copy must be in a folder the artist can write to (the drag-and-drop install is). | `""` |
+| `github_releases` | Without a releases folder, **Help > Check for updates** asks this GitHub repository for the newest bgcache release (only on that click). Set it to `""` to switch the check off, e.g. on machines without internet. | `"Marek-672/Maya-Tools"` |
+| `reports_url` | **Help > Report a problem > Send** posts the report zip here: a Google Apps Script web app that files it in your Google Drive folder (set-up steps in `tools/reports_receiver.gs`). Empty: no Send button, artists use Save report... and pass the zip on. | `""` |
+| `reports_folder` | Where **Save report...** starts, e.g. a pipeline folder for reports. Empty: the artist's home folder. | `""` |
 | `ffmpeg` | ffmpeg's location, if it isn't on the PATH (only needed for movies and for sound at a different sample rate). | `""` |
 
 ## Checking a profile without Maya
@@ -109,6 +111,5 @@ times slower than the studio's renderer.
 - **Shared installs:** put the module folder on a shared drive and add it to
   `MAYA_MODULE_PATH` in your launcher; ship your `profile.json` inside the
   `bgcache` folder.
-- **Known limits:** versions must be folders ending `_v<number>` (versioned
-  files side by side aren't found); movies must be `.mov`; neighbouring shots
+- **Known limits:** version names must end `_v<number>`; neighbouring shots
   are in name order, not cut order.
