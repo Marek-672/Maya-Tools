@@ -15,10 +15,14 @@ home = tempfile.mkdtemp(prefix="bgcache_testhome_")
 env = dict(os.environ, BGCACHE_LOGS=tempfile.mkdtemp(prefix="bgcache_testlogs_"),
            BGCACHE_PROFILE=os.path.join(HERE, "fixtures", "studio_profile.json"),
            HOME=home, USERPROFILE=home,
-           PYTHONUTF8="1")        # read source files as UTF-8 on Windows too (its default is cp1252)
+           PYTHONUTF8="1", PYTHONIOENCODING="utf-8")        # read source files as UTF-8 on Windows too (its default is cp1252)
+if hasattr(sys.stdout, "reconfigure"):   # a Windows console can't print every character
+    sys.stdout.reconfigure(errors="replace")
 total, failed = 0, []
 for path in sorted(glob.glob(os.path.join(HERE, "test_*.py"))):
-    result = subprocess.run([sys.executable, path], capture_output=True, text=True, env=env, cwd=HERE)
+    # the tests print UTF-8 (PYTHONUTF8 above): read it as UTF-8, not Windows' cp1252
+    result = subprocess.run([sys.executable, path], capture_output=True, encoding="utf-8", errors="replace",
+                            env=env, cwd=HERE)
     oks = [l for l in result.stdout.splitlines() if l.startswith("ok")]
     total += len(oks)
     status = "PASS" if result.returncode == 0 else "FAIL"
