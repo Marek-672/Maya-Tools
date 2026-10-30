@@ -24,7 +24,7 @@ importlib.reload(system)
 print("ok: win32 -> windows.py, darwin -> macos.py, linux -> linux.py")
 
 # ---- Windows: Maya on another drive, with spaces in the path
-root = tempfile.mkdtemp()
+root = os.path.realpath(tempfile.mkdtemp())     # macOS: /var/folders is a link to /private/var/folders
 loc = os.path.join(root, "Program Files", "Autodesk", "Maya2027")
 maya_exe = touch_exe(os.path.join(loc, "bin", "maya.exe"))
 mayapy_exe = touch_exe(os.path.join(loc, "bin", "mayapy.exe"))
