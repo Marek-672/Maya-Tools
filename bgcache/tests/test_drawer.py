@@ -256,7 +256,8 @@ print("ok: Import lists the other camera: Cache -> caching % -> loaded, ticks wo
 # permissions follow the folder; every save keeps a version
 mine.save()
 mode = os.stat(os.path.dirname(mine.path)).st_mode & 0o777
-assert os.stat(mine.path).st_mode & 0o777 == mode & 0o666
+if os.name != "nt":                      # Windows has no permission bits, only read-only
+    assert os.stat(mine.path).st_mode & 0o777 == mode & 0o666
 n0 = len(os.listdir(mine.history_dir())) if os.path.isdir(mine.history_dir()) else 0
 mine.save()
 hist = sorted(os.listdir(mine.history_dir()))

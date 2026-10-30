@@ -28,7 +28,7 @@ stop = p.split("def stop_bgcache")[1].split("def ")[0]
 assert 'self.drawer.ask_to_save(self, "stopping bgcache")' in stop
 close = p.split("def closeEvent")[1].split("def ")[0]
 assert 'self.drawer.ask_to_save(self, "closing the player")' in close
-print("ok: Ctrl+S saves drawings; DRAW tag shows ● while unsaved; Stop and closing ask Save / Don't save / Cancel")
+print("ok: Ctrl+S saves drawings; DRAW tag shows a dot while unsaved; Stop and closing ask Save / Don't save / Cancel")
 
 # ---- Report a problem
 assert profile.DEFAULT["reports_url"] == "" and profile.DEFAULT["reports_folder"] == ""
@@ -41,8 +41,8 @@ print("ok: Help > Report a problem; Send only when the profile has reports_url (
 session = "sess1"
 logs = common.log_dir(session)
 os.makedirs(logs, exist_ok=True)
-open(os.path.join(logs, "worker.log"), "w").write("opened /shows/BIRDS/sq010_0040/anim/walk_v012.mb as artist7\n")
-open(os.path.join(logs, "player.log"), "w").write("x" * (report.MAX_LOG_BYTES + 5000) + "\nlast line\n")
+open(os.path.join(logs, "worker.log"), "w", newline="").write("opened /shows/BIRDS/sq010_0040/anim/walk_v012.mb as artist7\n")
+open(os.path.join(logs, "player.log"), "w", newline="").write("x" * (report.MAX_LOG_BYTES + 5000) + "\nlast line\n")
 cfg = {"original_scene": "/shows/BIRDS/sq010_0040/anim/walk_v012.mb", "user": "artist7",
        "session": session, "profile": "test"}
 items = report.gather(session, cfg, "0.9.0b3", "simple")
