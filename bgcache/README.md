@@ -27,6 +27,11 @@ Made by an animator for animators. Free and open source (MIT).
   through drawings, export to Maya's Blue Pencil. Drawings are kept when you
   **Save** (Ctrl+S), with a history of the last 10 saves and a recovery copy
   if anything crashes.
+- **Continuity (Full edition):** the shots around yours, from any
+  department's movies or image sequences, play as one reel with your live
+  shot. **Set up continuity** learns where your film keeps its footage from
+  one movie you drop in (or searches your folders for it), and can follow the
+  cut from an EDL or XML. Works for one person or a team.
 - **Focus range:** drag two handles on the cache bar (or press I / O) to cache
   only the part you're working on.
 - **Refresh, Reload scene, Re-render all, Pause**, a self-test, and clear
@@ -46,11 +51,14 @@ Made by an animator for animators. Free and open source (MIT).
 ## Install
 
 1. Download the zip for your system from the
-   [Releases](https://github.com/Marek-672/Maya-Tools/releases) page (`bgcache-<version>-<system>-simple.zip`)
-   and unzip it.
+   [Releases](https://github.com/Marek-672/Maya-Tools/releases) page and unzip it:
+   `bgcache-<version>-<system>-simple.zip` (cache, player, drawing) or
+   `bgcache-<version>-<system>-full.zip` (the same plus continuity).
 2. Drag `install_bgcache.py` into a Maya viewport and choose **Install**.
 3. Click the new **bgcache** shelf button: BGCache starts and the player opens.
    Pick a camera in the player and it starts caching.
+4. Full edition: click **Continuity** in the player and show it one movie of
+   your shot (see [the guide](bgcache/README.md#setting-up-continuity-the-setup-wizard-090b4)).
 
 It installs as a Maya module in your own Maya folder (every Maya 2024+ finds
 it). It never edits `userSetup.py` or `Maya.env`. Drag it in again to
@@ -82,10 +90,8 @@ How the three processes talk to each other (files only: no network, no
 ports): [bgcache/HOW_IT_WORKS.md](bgcache/HOW_IT_WORKS.md). Where things live
 in the code: [bgcache/DEVELOPER.md](bgcache/DEVELOPER.md).
 
-The code also holds the **Full** edition's continuity add-on (neighbouring
-shots played as one reel with yours, by department and version). It needs a
-studio profile and a setup wizard that isn't finished yet, so only the Simple
-edition is offered as a download for now.
+A TD can also run **Set up continuity** once on a real shot and ship the
+settings file it writes, instead of writing a profile by hand.
 
 ## Tests
 

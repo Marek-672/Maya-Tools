@@ -119,9 +119,12 @@ u = open(os.path.join(REPO, "bgcache", "update.py")).read()
 assert u.count("import urllib.request") == 1 and "def _get(" in u
 import glob                                                 # noqa: E402
 for path in glob.glob(os.path.join(REPO, "bgcache", "**", "*.py"), recursive=True):
-    if os.path.basename(path) not in ("update.py", "report.py"):
+    if os.path.basename(path) not in ("update.py", "report.py", "ffmpeg_get.py"):
         text = open(path).read()
         assert "urllib" not in text and "import socket" not in text and "http.client" not in text, path
 r = open(os.path.join(REPO, "bgcache", "report.py")).read()
 assert r.count("urlopen(") == 1 and r.index("urlopen(") > r.index("def send(")
-print("ok: only update.py (Check for updates) and report.py (Send, in Report a problem) go online, and only when you click")
+f = open(os.path.join(REPO, "bgcache", "continuity", "ffmpeg_get.py")).read()
+assert f.count("urlopen(") == 1 and f.index("urlopen(") > f.index("def _fetch(")
+print("ok: only update.py (Check for updates), report.py (Send) and ffmpeg_get.py (Download it for me) go online, "
+      "and only when you click")

@@ -23,4 +23,4 @@ Usage, inside your animation Maya:
     import bgcache.controller as bgc
     bgc.shelf_click()
 """
-__version__ = "0.9.0b3"
+__version__ = "0.9.0b4"

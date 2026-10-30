@@ -39,7 +39,7 @@ jobs:
       - name: Build the downloads
         working-directory: bgcache
         run: python tools/build_release.py ../dist
-      - name: Make the draft release (Simple edition only)
+      - name: Make the draft release (Simple and Full editions)
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -49,6 +49,6 @@ jobs:
           [ -f "$notes" ] || { echo "::error::No release notes in $notes"; exit 1; }
           if gh release view "bgcache-v$v" >/dev/null 2>&1; then echo "::error::A release bgcache-v$v already exists"; exit 1; fi
           pre=""; case "$v" in *a*|*b*|*rc*) pre="--prerelease";; esac
-          gh release create "bgcache-v$v" dist/bgcache-$v-*-simple.zip \
+          gh release create "bgcache-v$v" dist/bgcache-$v-*-simple.zip dist/bgcache-$v-*-full.zip \
             --draft $pre --target "$GITHUB_SHA" \
             --title "BGCache $v" --notes-file "$notes"

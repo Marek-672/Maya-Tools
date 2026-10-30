@@ -288,11 +288,8 @@ class Continuity(object):
         self.browser = ShotBrowser(self)
         self.b_cont = self.browser.switch
         self.b_cont.setChecked(self.continuity_on)
-        self.b_cont.setEnabled(bool(self.shot_ids))
-        if not self.shot_ids:
-            where = profile.get("shot_folder")
-            self.b_cont.setToolTip("Continuity needs a scene inside a shot folder (%s)" % where if where else
-                                   "Continuity needs a pipeline profile that says where shots are")
+        if not self.shot_ids:                     # 0.9.0b4: the switch opens the setup wizard
+            self.b_cont.setToolTip("Set up continuity: show bgcache where your shots' movies are")
         self.b_cont.clicked.connect(lambda *_: self.toggle_continuity())
         if self.shot_ids:
             self.browser.add_card(ShotCard(self, self.live_shot, live=True))
@@ -793,6 +790,9 @@ class Continuity(object):
 
     def toggle_continuity(self, on=None):
         if not self.shot_ids:
+            self.b_cont.setChecked(False)
+            if on is None:
+                self.open_setup()
             return
         self.continuity_on = self.b_cont.isChecked() if on is None else on
         self.b_cont.setChecked(self.continuity_on)
@@ -801,6 +801,44 @@ class Continuity(object):
             QtCore.QTimer.singleShot(0, self._scroll_to_live)
         self._save_prefs()
         self._rebuild_reel()
+
+    # ---------------------------------------------------------------- setup
+    def open_setup(self):
+        """bgcache > Set up continuity... (and the Continuity switch before
+        anything is set up): the setup wizard."""
+        from bgcache.continuity import wizard
+        dialog = wizard.Wizard(self)
+        (getattr(dialog, "exec", None) or dialog.exec_)()
+        if dialog.saved:
+            self._after_setup()
+
+    def _after_setup(self):
+        """New settings: find the shot again and fill the strip, no restart."""
+        profile.load(force=True)
+        profile._context.clear()
+        for card in list(self.browser.cards.values()):
+            self.browser.cards_layout.removeWidget(card)
+            card.hide()
+            card.deleteLater()
+        self.browser.cards = {}
+        self.shots, self.infos, self.prepared, self.failed = [], {}, {}, {}
+        self.shot_ids = reel.parse_shot(self.cfg.get("original_scene")) or \
+            reel.parse_shot((self.cfg.get("audio") or {}).get("path"))
+        self.live_shot = self.shot_ids[1] if self.shot_ids else None
+        if not self.shot_ids:
+            self._flash_message("Saved, but this scene still isn't placed in a shot", 5.0)
+            return
+        folder = profile.get("drawings_folder")
+        if folder and getattr(self, "drawer", None) is not None:
+            self.drawer.root = profile.drawings_root(self.cfg.get("original_scene"))
+        self.browser.add_card(ShotCard(self, self.live_shot, live=True))
+        self.browser.info.setText("%s · finding shots..." % self.shot_ids[2])
+        self.b_cont.setToolTip("Play the staged shots before and after yours")
+        self.continuity_on = self.browser_open = True
+        self.b_cont.setChecked(True)
+        self._apply_continuity_visibility()
+        self._list_shots()
+        self._flash_message("Continuity is set up", 3.0)
 
     def toggle_browser(self):
         if not self.continuity_on:

@@ -34,7 +34,14 @@ and can be used in the other templates too.
 | `shot_folder` | Where one shot's folder is, e.g. `/projects/{show}/shots/{shot}`. A scene saved anywhere inside it belongs to that shot: that turns on continuity and the shared drawings folder. | `""` (no shots) |
 | `sequence_from_shot` | When `shot_folder` has no `{sequence}`: read it from the shot name. `{sequence}_*` = everything before the first `_` (`sq010_0040` is in `sq010`). | `"{sequence}_*"` |
 | `drawings_folder` | Where everyone's drawings for a shot go, e.g. `{shot_folder}/review/bgcache`. Each person writes only their own file under it. | `""`: next to the scene, or `<Maya project>/bgcache/<scene name>` |
-| `departments` | Footage the continuity strip can show, one entry per department: `name`, `base_path` (folder holding the versions), `version_pattern` (version names, `*` = anything, ending `_v<number>`: version folders, or since 0.9.0b3 files side by side such as `shot_v004.mov` or `shot_v004.1001.jpg`; a folder wins when both have a number), `source_type` (`image_sequence` or `single_movie`: a `.mov`, `.mp4` or `.m4v`). | `[]` |
+| `departments` | Footage the continuity strip can show, one entry per department: `name`, `base_path` (folder holding the versions), `version_pattern` (version names, `*` = anything, ending `_v<number>`: version folders, or since 0.9.0b3 files side by side such as `shot_v004.mov` or `shot_v004.1001.jpg`; a folder wins when both have a number), `source_type` (`image_sequence` or `single_movie`: a `.mov`, `.mp4` or `.m4v`). 0.9.0b4: the `*` in `version_pattern` is the version however it's written (`v004`, `_004`, `take3`, a date; a pattern without `*` names one file, the newest winning), matching ignores upper/lower case, and a department with `search_roots` (a list of folders) is found by searching them for files named after the shot instead of by `base_path`. | `[]` |
+| `shot_pattern` | 0.9.0b4: a regular expression that finds the shot in any file name, with a group named `shot` (and `sequence` if the name holds it), e.g. `(?i)(?<![A-Za-z0-9])(?P<shot>sh\d+)(?![A-Za-z0-9])`. Places scenes saved outside shot folders, and lists shots when there are no shot folders. The setup wizard writes it. | `""` |
+| `shots_folder` | Without a `shot_folder`: the folder whose file names list the sequence's shots (e.g. one folder of playblasts); takes `{sequence}`. | `""` |
+| `edit_order` | An edit export (`.edl`, Final Cut / Premiere `.xml`, `.fcpxml`): neighbouring shots follow the cut instead of name order. | `""` |
+| `footage_by_hand` | `{shot: {department: file}}`: footage chosen by hand for a shot (the wizard's table); later versions of that file count as newer. | `{}` |
+| `scenes_by_hand` | `{scene path: shot}` for scenes outside the show that the user told the wizard which shot they are. | `{}` |
+| `team_settings`, `project_folder` | A film team: `team_settings` is a shared settings file read first (`<project>/bgcache/settings.json`), whose paths may start `{project}`; `project_folder` says where the project is on this computer. | `""` |
+| `ffmpeg_download` | `false`: the setup wizard never offers to download ffmpeg (point `ffmpeg` at yours). | `true` |
 | `departments_file` | Optional JSON file with its own `departments` list (and `ffmpeg_path`) that replaces the one above, e.g. a file shared with another tool. Only read. | `""` |
 | `auto_order` | Auto picks the first department with footage, in this order; departments not listed follow in their listed order. | `[]` |
 | `movie_slate_frames` | Department movies start with this many slate frames. A movie exactly that much longer than the shot has them skipped. | `0` |
@@ -52,6 +59,10 @@ and can be used in the other templates too.
 | `reports_url` | **Help > Report a problem > Send** posts the report zip here: a Google Apps Script web app that files it in your Google Drive folder (set-up steps in `tools/reports_receiver.gs`). Empty: no Send button, artists use Save report... and pass the zip on. | `""` |
 | `reports_folder` | Where **Save report...** starts, e.g. a pipeline folder for reports. Empty: the artist's home folder. | `""` |
 | `ffmpeg` | ffmpeg's location, if it isn't on the PATH (only needed for movies and for sound at a different sample rate). | `""` |
+
+## Or let the setup wizard write it
+
+In the Full edition's player, **bgcache > Set up continuity...** learns all of the above from one movie of the open shot (or by searching folders) and writes the same keys to `~/.bgcache/profile.json`, or, for a team, to `<project>/bgcache/settings.json`. A TD can run it once on a real shot, then ship the file. When a studio profile is active (`BGCACHE_PROFILE`, or `profile.json` in the installed `bgcache` folder), the wizard only says so.
 
 ## Checking a profile without Maya
 

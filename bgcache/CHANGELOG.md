@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.9.0 beta 4
+
+- **The Full edition is out:** continuity, the strip of shots around yours,
+  played as one reel with your shot.
+- **Set up continuity** (the setup wizard): show it one movie of your shot
+  and it learns where your film keeps its footage. Or point it at folders and
+  it searches them for files named after your shots. It works with version
+  folders or versions in file names (v004, _004, take3, dates), MOV, MP4 and
+  image sequences, and shots read from file names. Add an edit (EDL or XML)
+  and shots follow the cut.
+- **Teams:** shared drawings and one setup for everyone, in the project
+  folder; each computer says once where that folder is.
+- **ffmpeg:** if movies need it and it isn't there, "Download it for me"
+  fetches a fixed, checked build into ~/.bgcache/ffmpeg (only on that click).
+
 ## 0.9.0 beta 3
 
 - **Drawings are shared when you save, not as you draw (changed).** Your

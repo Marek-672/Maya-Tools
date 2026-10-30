@@ -88,6 +88,9 @@ DEFAULT = {
     # ffmpeg, if it isn't on the PATH (only needed for movies and for sound
     # at a different sample rate).
     "ffmpeg": "",
+    # The setup wizard may offer to download ffmpeg (a pinned build, into
+    # ~/.bgcache/ffmpeg) when there's none. false: never offer it.
+    "ffmpeg_download": True,
     # The background Maya draws the cache with the same viewport renderer as
     # your shot camera's view (Viewport 2.0, plus a studio render override
     # if there is one; plug-ins with "viewport" in their name, or listed in
@@ -111,6 +114,29 @@ DEFAULT = {
     # Drive folder (tools/reports_receiver.gs). Empty: no Send, Save only.
     # reports_folder: where Save report... starts (a pipeline folder, say).
     # Empty: your home folder.
+    # 0.9.0b4, footage outside shot folders (the setup wizard writes these):
+    # shot_pattern: a regex finding the shot in any file name, with a group
+    # named shot (and one named sequence if the name holds it), e.g.
+    # "(?i)(?P<shot>sh\\d+)". Used when a scene isn't inside a shot_folder.
+    # shots_folder: where the sequence's shots are named (e.g. one folder of
+    # playblasts); takes {sequence}. Used when there's no shot_folder.
+    "shot_pattern": "",
+    "shots_folder": "",
+    # scenes_by_hand: {scene path: shot} for scenes saved outside the show
+    # that the user told the wizard which shot they are.
+    "scenes_by_hand": {},
+    # edit_order: an edit export (.edl, Final Cut / Premiere .xml, .fcpxml):
+    # neighbouring shots follow the cut instead of name order.
+    "edit_order": "",
+    # footage_by_hand: {shot: {department: movie}} dropped on a shot's card
+    # in the wizard; later versions of that file count as newer.
+    "footage_by_hand": {},
+    # A film team (0.9.0b4): team_settings is the shared settings file
+    # (e.g. P:/FILM/bgcache/settings.json), read before this file's keys;
+    # project_folder is where the project is on THIS computer, used for
+    # {project} in the team's paths (P:/FILM on Windows, /Volumes/FILM on a Mac).
+    "team_settings": "",
+    "project_folder": "",
     "reports_url": "",
     "reports_folder": "",
 }
@@ -140,24 +166,74 @@ def _read(path):
 
 
 def load(force=False):
-    """The active profile (a dict with every DEFAULT key)."""
+    """The active profile (a dict with every DEFAULT key). A personal
+    profile with "team_settings" reads that team file first, then its own
+    keys on top (0.9.0b4: a film team's shared setup)."""
+    if _override["profile"] is not None:
+        return _override["profile"]
     found = next((p for p in candidates() if os.path.isfile(p)), None)
-    try:
-        key = (found, os.path.getmtime(found)) if found else None
-    except OSError:
-        key = None
+    key = _key(found)
     if not force and _cache["profile"] is not None and _cache["key"] == key:
         return _cache["profile"]
     prof = copy.deepcopy(DEFAULT)
     source = "built-in generic profile"
     if found:
         try:
-            prof.update(_read(found))
+            own = _read(found)
+            team = os.path.expanduser(own.get("team_settings") or "")
+            if team:
+                try:
+                    prof.update(_read(team))
+                except (IOError, OSError, ValueError) as error:
+                    print("bgcache: team settings %s can't be read (%s)" % (team, error))
+            prof.update(own)
             source = found
         except (IOError, OSError, ValueError) as error:
             print("bgcache: profile %s can't be read (%s); using the generic profile" % (found, error))
     _cache.update(key=key, profile=prof, source=source)
     return prof
+
+
+def _key(found):
+    """What the cached profile depends on: the file and its team file, with
+    their dates."""
+    if not found:
+        return None
+    try:
+        key = [found, os.path.getmtime(found)]
+        team = _cache["profile"].get("team_settings") if _cache["profile"] else None
+        if team and os.path.isfile(os.path.expanduser(team)):
+            key += [team, os.path.getmtime(os.path.expanduser(team))]
+        return tuple(key)
+    except OSError:
+        return None
+
+
+_override = {"profile": None}
+
+
+def use(prof):
+    """Try settings without saving them (the setup wizard's preview): a full
+    profile dict, or None to go back to the saved one."""
+    if prof is None:
+        _override["profile"] = None
+        return
+    full = copy.deepcopy(DEFAULT)
+    full.update({k: v for k, v in prof.items() if not k.startswith("_")})
+    _override["profile"] = full
+    _context.clear()
+
+
+def personal_path():
+    return os.path.join(os.path.expanduser("~"), ".bgcache", "profile.json")
+
+
+def is_studio():
+    """True when a studio's profile is in use (BGCACHE_PROFILE or one
+    shipped in the bgcache folder), not the person's own."""
+    src = source()
+    return src not in ("built-in generic profile",) and os.path.normcase(os.path.abspath(src)) != \
+        os.path.normcase(os.path.abspath(personal_path()))
 
 
 def source():
@@ -176,8 +252,12 @@ FIELD_RE = re.compile(r"\{(\w+)\}")
 
 
 def _norm(path):
-    """Forward slashes, ~ expanded: the form templates are matched against."""
-    return os.path.expanduser(path or "").replace("\\", "/")
+    """Forward slashes, ~ and {project} (this computer's project_folder, for
+    a team's settings) filled in: the form templates are matched against."""
+    text = path or ""
+    if "{project}" in text:
+        text = text.replace("{project}", (get("project_folder") or "").rstrip("/\\"))
+    return os.path.expanduser(text).replace("\\", "/")
 
 
 def _template_regex(template, tail):
@@ -227,8 +307,54 @@ def shot_fields(show, shot):
 
 
 def match_shot(path):
-    """The shot a file is in, as {show, sequence, shot, shot_folder}, or None
-    (no shot_folder in the profile, or the file isn't inside one)."""
+    """The shot a file is in, as {show, sequence, shot, shot_folder}, or None:
+    from the shot folder it's in, or (0.9.0b4, footage and scenes outside
+    shot folders) from the profile's shot_pattern found in its name."""
+    return _match_shot_folder(path) or _match_shot_name(path) or _match_by_hand(path)
+
+
+def _match_by_hand(path):
+    """A scene the user told the wizard which shot it is (scenes_by_hand:
+    {scene path: shot}), for test scenes saved outside the show."""
+    by_hand = {_norm(k).lower(): v for k, v in (get("scenes_by_hand") or {}).items()}
+    shot = by_hand.get(_norm(path).lower()) if path else None
+    return shot_fields("", shot) if shot else None
+
+
+def _match_shot_name(path):
+    """The shot_pattern's last match in the path, file name first."""
+    pattern = get("shot_pattern")
+    if not pattern or not path:
+        return None
+    try:
+        rx = re.compile(pattern)
+    except re.error as error:
+        print("bgcache: shot_pattern in the profile isn't a valid pattern: %s" % error)
+        return None
+    for part in reversed(_norm(path).split("/")):
+        m = rx.search(part)
+        if m and m.groupdict().get("shot"):
+            shot = m.group("shot")
+            if m.groupdict().get("sequence"):
+                _context[("", shot)] = m.group("sequence")
+            _extra.clear()
+            return shot_fields("", shot)
+    return None
+
+
+def _looks_like_shot(name):
+    """True unless the profile's shot_pattern says this name isn't a shot."""
+    pattern = get("shot_pattern")
+    if not pattern:
+        return True
+    try:
+        m = re.compile(pattern).search(name)
+    except re.error:
+        return True
+    return bool(m) and m.group("shot").lower() == name.lower()
+
+
+def _match_shot_folder(path):
     template = (get("shot_folder") or "").rstrip("/")
     if not template or "{shot}" not in template or not path:
         return None
@@ -237,6 +363,8 @@ def match_shot(path):
         return None
     groups = m.groupdict()
     show, shot = groups.get("show") or "", groups["shot"]
+    if not _looks_like_shot(shot) or (m.end() == len(_norm(path)) and os.path.splitext(shot)[1]):
+        return None                       # the file itself, or a folder that isn't shot-shaped
     if groups.get("sequence"):
         _context[(show, shot)] = groups["sequence"]
     _extra.clear()
@@ -255,10 +383,11 @@ def parse_shot(path):
 
 
 def list_shots(show, sequence):
-    """Shot names in a sequence: the folders next to the shot folder."""
+    """Shot names in a sequence: the folders next to the shot folder, or
+    (0.9.0b4) the shots named in the profile's shots_folder."""
     template = (get("shot_folder") or "").rstrip("/")
     if not template:
-        return []
+        return _shots_in_names(show, sequence)
     parent, last = _norm(template).rsplit("/", 1) if "/" in template else ("", template)
     if "{shot}" not in last:
         return []
@@ -281,10 +410,35 @@ def list_shots(show, sequence):
         shot = m.group("shot")
         if sequence_in_path:
             _context[(show or "", shot)] = sequence
-        elif sequence_of(shot, show) != sequence:
-            continue
+        elif sequence_of(shot, show) not in (sequence, None):
+            continue                      # no sequences in this layout: all shots are one
         shots.append(shot)
     return sorted(shots)
+
+
+def _shots_in_names(show, sequence):
+    """Shots found by shot_pattern among the names in shots_folder."""
+    folder_t, pattern = get("shots_folder"), get("shot_pattern")
+    if not folder_t or not pattern:
+        return []
+    try:
+        folder = fill(folder_t, dict(_extra, show=show or "", sequence=sequence or "", shot=""))
+        rx = re.compile(pattern)
+        entries = os.listdir(folder)
+    except (KeyError, OSError, re.error):
+        return []
+    shots = set()
+    for entry in entries:
+        m = rx.search(entry)
+        if not m:
+            continue
+        shot, seq = m.group("shot"), m.groupdict().get("sequence")
+        if seq:
+            _context[(show or "", shot)] = seq
+        if sequence and (seq or sequence_of(shot, show) or sequence).lower() != sequence.lower():
+            continue
+        shots.add(shot)
+    return sorted(shots, key=lambda s: s.lower())
 
 
 # --------------------------------------------------------------------------

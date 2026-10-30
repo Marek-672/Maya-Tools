@@ -216,6 +216,9 @@ class NoContinuity(object):
     def _scroll_to_live(self):
         pass
 
+    def open_setup(self):
+        pass
+
 
 def _continuity_part():
     """The add-on's Continuity class, or NoContinuity if it isn't installed
@@ -465,6 +468,8 @@ class Player(_continuity_part(), QtWidgets.QWidget):
         self.b_push = app_menu.addAction("Push selected")
         self.b_push.setToolTip("Send the unkeyed values of what's selected in your Maya")
         self.b_push.triggered.connect(lambda: self._maya_cmd("push_selected", "Push selected sent to your Maya"))
+        if self.has_continuity:
+            app_menu.addAction("Set up continuity...", self.open_setup)
         app_menu.addSeparator()
         app_menu.addAction("Restart bgcache", lambda: self._maya_cmd(
             "restart", "Restarting: the player reopens in a moment"))

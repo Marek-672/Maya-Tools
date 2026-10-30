@@ -18,16 +18,14 @@ Image sequences keep their production frame numbers (they don't start at 1).
 import os
 import re
 import json
-import fnmatch
 import shutil
 import subprocess
 import tempfile
 
 from bgcache import common, profile
+from bgcache.continuity import names
 
-VERSION_RE = re.compile(r"_v(\d+)$")
-FRAME_FILE_RE = re.compile(r"\.\d+\.(jpg|jpeg|png|tif|tiff|exr)$", re.IGNORECASE)
-MOVIE_EXTS = (".mov", ".mp4", ".m4v")      # 0.9.0b3: .mp4 too
+FRAME_FILE_RE = names.FRAME_RE
 THUMB_CACHE_DIR = os.path.join(tempfile.gettempdir(), "bgcache_thumbs")
 
 
@@ -57,16 +55,16 @@ def get_departments():
 
 
 def get_ffmpeg_path():
-    """ffmpeg for movies and sound conversion: the profile's "ffmpeg", the
-    departments_file's "ffmpeg_path", or the one on the PATH. Raises if
-    there is none. Nothing is written anywhere."""
-    for stored in (profile.get("ffmpeg"), _departments_file().get("ffmpeg_path")):
-        if stored and os.path.isfile(os.path.expanduser(stored)):
-            return os.path.expanduser(stored)
-    found = shutil.which("ffmpeg")
+    """ffmpeg for movies and sound conversion (ffmpeg_get.find: the
+    profile's "ffmpeg", the departments_file's "ffmpeg_path", bgcache's own
+    downloaded copy, the PATH, the usual folders). Raises if there is none.
+    Nothing is written anywhere."""
+    from bgcache.continuity import ffmpeg_get
+    found = ffmpeg_get.find(_departments_file().get("ffmpeg_path"))
     if found:
         return found
-    raise RuntimeError("ffmpeg not found: install it, or set \"ffmpeg\" in the profile")
+    raise RuntimeError("ffmpeg not found: install it, or set \"ffmpeg\" in the profile "
+                       "(bgcache > Set up continuity... can download it)")
 
 
 # ----------------------------------------------------------------------
@@ -74,38 +72,38 @@ def get_ffmpeg_path():
 # ----------------------------------------------------------------------
 def _version_folders(base_dir, pattern, source_type=None):
     """[(version_number, path)] under base_dir matching pattern, oldest
-    first. A version is a _vNNN folder, or (0.9.0b3) the version in a file
-    name, for footage kept side by side in one folder: shot_v004.mov, or
-    shot_v004.1001.jpg... (path: the movie, or the sequence's first
-    frame). A folder wins over a file with the same number."""
+    first. A version is a folder, or (0.9.0b3) a file with the version in
+    its name, kept side by side in one folder: shot_v004.mov, or
+    shot_v004.1001.jpg... (path: the movie, or the sequence's first frame).
+    0.9.0b4: the version however it's written (names.py: v004, _004,
+    take3, a date); a name with no version counts as 0, the newest such
+    file or folder winning. A folder wins over a file with the same number."""
     if not os.path.isdir(base_dir):
         return []
-    folders, files = {}, {}
+    found = {}            # version -> (rank, path); rank: folder 2, file 1; then newer
     for name in sorted(os.listdir(base_dir)):
         full = os.path.join(base_dir, name)
-        if os.path.isdir(full):
-            m = VERSION_RE.search(name)
-            if m and fnmatch.fnmatch(name, pattern):
-                folders[int(m.group(1))] = full
+        is_dir = os.path.isdir(full)
+        stem = name if is_dir else _versioned_file_stem(name, source_type)
+        if not stem or not names.matches(stem, pattern):
             continue
-        stem = _versioned_file_stem(name, source_type)
-        m = VERSION_RE.search(stem) if stem else None
-        if m and fnmatch.fnmatch(stem, pattern):
-            files.setdefault(int(m.group(1)), full)          # sorted: the first frame
-    files.update(folders)
-    return sorted(files.items())
+        version = names.version_in(stem, pattern) or 0
+        try:
+            rank = (2 if is_dir else 1, os.path.getmtime(full) if version == 0 else 0)
+        except OSError:
+            continue
+        if version not in found or rank > found[version][0]:
+            found[version] = (rank, full)
+    return sorted((v, path) for v, (_rank, path) in found.items())
 
 
 def _versioned_file_stem(name, source_type):
     """The name of a footage file without frame number and extension, or
     None when the file isn't footage for this department."""
-    frame = FRAME_FILE_RE.search(name)
-    if frame and source_type in (None, "image_sequence"):
-        return name[:frame.start()]
-    stem, ext = os.path.splitext(name)
-    if ext.lower() in MOVIE_EXTS and source_type in (None, "single_movie"):
-        return stem
-    return None
+    stem, kind = names.footage_stem(name)
+    if stem is None or source_type not in (None, kind):
+        return None
+    return stem
 
 
 def _sequence_from_file(first):
@@ -128,22 +126,75 @@ def _best_version_folder(base_dir, pattern, source_type=None):
     return folder, version_num
 
 
-def _dept_place(show, shot, dept):
-    fields = profile.shot_fields(show, shot)
-    return profile.fill(dept["base_path"], fields), dept["version_pattern"].format_map(fields)
-
-
 def list_versions(show, shot, department_name):
     """Version numbers a department has for a shot, newest first."""
     for dept in get_departments():
-        if dept["name"] != department_name:
-            continue
-        try:
-            base_dir, pattern = _dept_place(show, shot, dept)
-        except (KeyError, ValueError):
-            return []
-        return [v for v, _folder in reversed(_version_folders(base_dir, pattern, dept.get("source_type")))]
+        if dept["name"] == department_name:
+            return [v for v, _folder in reversed(_versions_for(dept, show, shot))]
     return []
+
+
+def _versions_for(dept, show, shot):
+    """[(version, path)] of a department's footage for a shot, oldest first:
+    a movie the user dropped on that shot by hand (and its later versions),
+    or what Search by shot name found (a department with search_roots), or
+    the department's folder."""
+    kind = dept.get("source_type")
+    by_hand = _by_hand(shot).get(dept["name"])
+    if by_hand:
+        folder, name = os.path.split(profile._norm(by_hand))
+        stem, file_kind = names.footage_stem(name)
+        if stem:
+            from bgcache.continuity import learn
+            return _version_folders(folder, learn.version_pattern(stem)[0], file_kind)
+    fields = profile.shot_fields(show, shot)
+    try:
+        pattern = dept["version_pattern"].format_map(fields)
+        if dept.get("search_roots"):
+            return _searched(dept, shot, pattern)
+        base_dir = profile.fill(dept["base_path"], fields)
+    except (KeyError, ValueError) as error:
+        print("bgcache: department %r in the profile: unknown field %s" % (dept.get("name"), error))
+        return []
+    return _version_folders(base_dir, pattern, kind)
+
+
+def _by_hand(shot):
+    """{department: path} the user dropped onto this shot's card."""
+    table = profile.get("footage_by_hand") or {}
+    for key, value in table.items():
+        if key.lower() == (shot or "").lower():
+            return value or {}
+    return {}
+
+
+SEARCH_EVERY_S = 120
+_index = {"key": None, "time": 0.0, "found": {}}
+
+
+def _searched(dept, shot, pattern):
+    """Search by shot name: every footage file under the department's
+    search_roots whose name holds the shot (scanned once, then every 2 min)."""
+    from bgcache.continuity import learn
+    import time
+    roots = [profile._norm(r) for r in dept["search_roots"]]
+    key = (tuple(roots), profile.get("shot_pattern"))
+    if _index["key"] != key or time.time() - _index["time"] > SEARCH_EVERY_S:
+        found = learn.scan(roots, profile.get("shot_pattern")) if profile.get("shot_pattern") else {}
+        _index.update(key=key, time=time.time(), found=found)
+    best = {}
+    for path in _index["found"].get((shot or "").lower(), []):
+        stem, kind = names.footage_stem(os.path.basename(path))
+        if kind != dept.get("source_type", kind) or not names.matches(stem, pattern):
+            continue
+        v = names.version_in(stem, pattern) or 0
+        try:
+            rank = os.path.getmtime(path)
+        except OSError:
+            continue
+        if v not in best or rank > best[v][0]:
+            best[v] = (rank, path)
+    return sorted((v, path) for v, (_r, path) in best.items())
 
 
 def _first_frame_number(filename):
@@ -183,7 +234,7 @@ def _find_single_movie(version_folder):
     for root, dirs, files in os.walk(version_folder):
         dirs.sort()
         for f in sorted(files):
-            if f.lower().endswith(MOVIE_EXTS):
+            if names.is_movie(f):
                 return os.path.join(root, f)
     return None
 
@@ -210,19 +261,13 @@ def resolve_shot(show, shot, department_name=None, version=None):
     candidates = departments if department_name is None else [
         d for d in departments if d["name"] == department_name
     ]
-    fields = profile.shot_fields(show, shot)
     for dept in candidates:
-        try:
-            base_dir = profile.fill(dept["base_path"], fields)
-            pattern = dept["version_pattern"].format_map(fields)
-        except (KeyError, ValueError) as error:
-            print("bgcache: department %r in the profile: unknown field %s" % (dept.get("name"), error))
-            continue
+        found = _versions_for(dept, show, shot)
         if version is not None and department_name is not None:
-            folder = dict(_version_folders(base_dir, pattern, dept["source_type"])).get(int(version))
+            folder = dict(found).get(int(version))
             found_version = int(version)
         else:
-            folder, found_version = _best_version_folder(base_dir, pattern, dept["source_type"])
+            found_version, folder = found[-1] if found else (None, None)
         if not folder:
             continue
         if dept["source_type"] == "image_sequence":
@@ -276,5 +321,41 @@ def get_thumbnail(shot, info, ffmpeg_path=None):
 
 
 def list_shots_in_sequence(show, sequence_code):
-    """Shot names in a sequence, from the profile's shot_folder layout."""
-    return profile.list_shots(show, sequence_code)
+    """Shot names in a sequence, in cut order when the profile names an edit
+    export (edit_order), else by name."""
+    shots = _shots_in_sequence(show, sequence_code)
+    edit = profile._norm(profile.get("edit_order") or "")
+    if edit and shots:
+        from bgcache.continuity import edit_order
+        import re
+        pattern = profile.get("shot_pattern") or "(?i)(?<![A-Za-z0-9])(?P<shot>%s)(?![A-Za-z0-9])" % \
+            "|".join(re.escape(s) for s in shots)
+        shots = edit_order.sort_shots(shots, edit, pattern)
+    return shots
+
+
+def _shots_in_sequence(show, sequence_code):
+    """From the profile's shot_folder layout (or shots_folder); else the
+    shots a Search by shot name found."""
+    shots = profile.list_shots(show, sequence_code)
+    if shots:
+        return shots
+    for dept in get_departments():
+        if dept.get("search_roots"):
+            _searched(dept, "", "*")              # fills the index
+            break
+    import re
+    try:
+        rx = re.compile(profile.get("shot_pattern") or "$^")
+    except re.error:
+        return []
+    out = set()
+    for paths in _index["found"].values():
+        for path in paths:
+            m = rx.search(os.path.basename(path))
+            if not m:
+                continue
+            seq = m.groupdict().get("sequence") or profile.sequence_of(m.group("shot"), show)
+            if not sequence_code or seq in (None, sequence_code) or (seq or "").lower() == sequence_code.lower():
+                out.add(m.group("shot"))
+    return sorted(out, key=lambda x: x.lower())

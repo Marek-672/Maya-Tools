@@ -38,6 +38,10 @@ def stage(root, full, system_name):
     readme = open(os.path.join(REPO, "tools", "dragdrop", "README.txt")).read()
     edition = "Full (with the continuity add-on)" if full else "Simple (playback and drawing)"
     head = "bgcache %s for %s, %s\n\n" % (version(), SYSTEMS[system_name], edition)
+    if full:
+        readme += ("\nContinuity (the strip of shots around yours): in the player, click Continuity, or\n"
+                   "bgcache > Set up continuity..., and show it one movie of your shot. It learns where your\n"
+                   "footage lives. Pipeline TDs can write the settings by hand instead: extras/profiles.\n")
     if system_name == "macos":
         readme += "\nmacOS: tested on Apple Silicon with Maya 2025. Please report what you find on other Macs.\n"
     open(os.path.join(root, "README.txt"), "w").write(head + readme)

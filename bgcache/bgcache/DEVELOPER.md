@@ -58,7 +58,7 @@ are the same objects as in `scene.py`.
 | `player.py` | `Player`: the window (`_build_ui` and its `_build_*` parts), playback, the cache bar, sync with your Maya, focus range, health banners, studio update check. `main()` is the mayapy entry. |
 | `drawui.py`, `drawing.py` | Drawing: the strip (`DrawPanel`), pen input, painting, layers, Blue Pencil export/import. Since 0.9.0b3 edits mark the drawings dirty (`Drawer.edited`) and write a recovery copy; only `save_now` (Save, Ctrl+S) writes the shared file, keeping the last 10 versions (`Drawing.versions`, `restore`). |
 | `report.py` | Help > Report a problem: gathers the logs into a zip, Hide names, Save, and Send to the profile's `reports_url`. With `update.py`, the only code that goes online, and only on a click. |
-| `continuity/` | The Full edition's neighbour shots (`reel.py`, `resolver.py`, `ui.py`). The Simple edition is built without this folder; `player.py` falls back to `NoContinuity`. |
+| `continuity/` | The Full edition's neighbour shots: `ui.py` (the strip), `reel.py` (converting and playing), `resolver.py` (which file is a shot's footage), `names.py` (movie / sequence names and versions however written). 0.9.0b4: `learn.py` (the setup wizard's learning core: paths in, settings out; `scan` for Search by shot name), `wizard.py` (the five-step window), `edit_order.py` (cut order from EDL / XML / FCPXML), `ffmpeg_get.py` (find ffmpeg, or download the pinned build). The Simple edition is built without this folder; `player.py` falls back to `NoContinuity`. |
 | `audio.py`, `widgets.py`, `theme.py` | Sound, small shared widgets, the dark look. |
 
 ### Shared
@@ -84,7 +84,7 @@ are the same objects as in `scene.py`.
 python3 tests/run_tests.py
 ```
 
-No Maya or Qt needed: each test stubs them. About 400 checks; run before every
+No Maya or Qt needed: each test stubs them. About 440 checks (`test_learn.py` builds 25 made-up production layouts and checks the learned settings find the neighbours' footage; add a case for every real layout that fails); run before every
 build. `tests/_source.py` gives tests the source text (`source("controller")`
 returns the controller files and `scene.py` together) for checks on the code
 itself. Real-Maya checks (speed, textures, path curves) are done by hand on
