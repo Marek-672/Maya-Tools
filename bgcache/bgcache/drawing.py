@@ -109,10 +109,12 @@ def _dist2_point_segment(px, py, ax, ay, bx, by):
 
 def match_parent_mode(path, is_dir=False):
     """Give a new folder or file the same openness as the folder it's in
-    (a file without the execute bits). Never raises."""
+    (a file without the execute bits). You can always write your own
+    file (on Windows a read-only folder would otherwise make it read-only,
+    and the next save would fail). Never raises."""
     try:
         mode = os.stat(os.path.dirname(os.path.abspath(path))).st_mode & 0o777
-        os.chmod(path, mode if is_dir else mode & 0o666)
+        os.chmod(path, (mode if is_dir else mode & 0o666) | 0o200)
     except OSError:
         pass
 
@@ -311,8 +313,12 @@ class Drawings(object):
             if not os.path.isdir(folder):
                 make_dirs(folder)
             now = time.time()
-            target = os.path.join(folder, "layers_%s_%03d.json" % (time.strftime("%Y%m%d_%H%M%S"),
-                                                                   int(now * 1000) % 1000))
+            stem = os.path.join(folder, "layers_%s_%03d" % (time.strftime("%Y%m%d_%H%M%S", time.localtime(now)),
+                                                            int(now * 1000) % 1000))
+            target, n = stem + ".json", 0
+            while os.path.exists(target):     # two saves in the same millisecond: both kept
+                n += 1
+                target = "%s_%d.json" % (stem, n)
             with open(self.path, "rb") as src, open(target, "wb") as dst:
                 dst.write(src.read())
             match_parent_mode(target)

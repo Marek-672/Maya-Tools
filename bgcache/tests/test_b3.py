@@ -141,3 +141,15 @@ assert update.check_folder(home, "0.9.0b3")["state"] == "latest"
 print("ok: releases_folder can be a list, first folder first; a missing folder is skipped")
 
 shutil.rmtree(tmp, ignore_errors=True)
+
+# ---- drawing versions: quick saves all kept; your own file stays writable
+from bgcache import drawing                              # noqa: E402
+tmp2 = os.path.realpath(tempfile.mkdtemp())
+dr = drawing.Drawings(os.path.join(tmp2, "u", "drawings", "cam", "layers.json"), (960, 540), owner="u")
+for i in range(4):
+    dr.add_stroke(1001 + i, {"c": "#fff", "w": 2, "p": [[1, 1, 1], [2, 2, 1]]})
+    assert dr.save() == ""
+assert len(os.listdir(dr.history_dir())) == 3
+assert os.stat(dr.path).st_mode & 0o200
+print("ok: saves in quick succession each keep a version; your drawings file always stays writable")
+shutil.rmtree(tmp2, ignore_errors=True)
