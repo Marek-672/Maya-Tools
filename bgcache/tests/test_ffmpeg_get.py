@@ -47,13 +47,13 @@ if os.name != "nt":
 
 # a wrong checksum leaves nothing behind
 ffmpeg_get.build_for_this_computer = lambda: (name, "0" * 64, len(packed))
-shutil.rmtree(ffmpeg_get.own_folder())
+shutil.rmtree(ffmpeg_get.own_folder(), ignore_errors=True)
 try:
     ffmpeg_get.download()
     raise AssertionError("a wrong checksum must fail")
 except RuntimeError as error:
     assert "checksum" in str(error)
-assert os.listdir(ffmpeg_get.own_folder()) == []
+assert not os.listdir(ffmpeg_get.own_folder())
 
 
 def offline(url, timeout=0):
