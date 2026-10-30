@@ -46,7 +46,8 @@ LRU_SIZE = 64
 GREEN, RED = QtGui.QColor(60, 140, 90), QtGui.QColor(180, 55, 55)
 STAGED = QtGui.QColor(66, 128, 186)      # staged neighbour shots: blue, as on their cards
 TICK, TICK_EDGE = QtGui.QColor(224, 138, 69), QtGui.QColor(11, 11, 11)
-FOCUS = QtGui.QColor(245, 214, 110)      # focus range handles (b18)   # drawn-frame marks on the bar
+FOCUS = QtGui.QColor(245, 214, 110)      # focus range handles (b18)
+TAB_W, TAB_H = 11, 10                    # b4: the handles' tabs above the bar   # drawn-frame marks on the bar
 
 STYLE = """
 QWidget#bgcPlayer { background: #121212; }
@@ -120,6 +121,7 @@ class Canvas(QtWidgets.QWidget):
         super(Canvas, self).__init__(player)
         self.player = player
         self.setMinimumSize(160, 90)          # small, so the window can get narrow (Draw strip open too)
+        self.setMouseTracking(True)           # b4: the focus handles light up under the pointer
 
     def paintEvent(self, event):
         self.player.paint(self)
@@ -829,7 +831,8 @@ class Player(_continuity_part(), QtWidgets.QWidget):
     def set_focus(self, first=None, last=None, clear=False, save=True):
         """Cache only first-last of your shot. Frames outside that your edits
         change go red but wait; widening the range (or clearing it) lets the
-        background Maya redo them. Playback and sync still cover the whole shot."""
+        background Maya redo them. b4: Play also stays inside the range (and
+        loops it); stepping and scrubbing still go anywhere."""
         if clear:
             self.focus_range = None
         else:
@@ -873,13 +876,14 @@ class Player(_continuity_part(), QtWidgets.QWidget):
     def _handle_at(self, canvas, event):
         """'in' / 'out' if the press is on a focus handle in the cache bar."""
         pt = self._point(event)
-        if pt.y() < canvas.height() - BAR_H - 4:
+        if pt.y() < canvas.height() - BAR_H - TAB_H - 2:
             return None
         a, b = self.focus_range or (self.start, self.end)
         xin, xout = self._bar_x(canvas, a), self._bar_x(canvas, b, right=True)
-        if abs(pt.x() - xin) <= 6 and (abs(pt.x() - xin) <= abs(pt.x() - xout)):
+        # b4: a wider grab, reaching inward over the tab
+        if -4 <= pt.x() - xin <= TAB_W + 2 and (abs(pt.x() - xin) <= abs(pt.x() - xout)):
             return "in"
-        if abs(pt.x() - xout) <= 6:
+        if -4 <= xout - pt.x() <= TAB_W + 2:
             return "out"
         return None
 
@@ -1402,6 +1406,16 @@ class Player(_continuity_part(), QtWidgets.QWidget):
         self.toggle_play(1)
 
     # ================================================================ playback
+    def _play_window(self):
+        """(first, end) reel positions playback stays in: the focus range when
+        one is set (b4: like a play range; neighbouring shots are skipped),
+        else the whole reel."""
+        if not self.focus_range:
+            return 0, self.total
+        live = self._live_offset()
+        a, b = self.focus_range
+        return live + a - self.start, min(self.total, live + b - self.start + 1)
+
     def toggle_play(self, direction=1):
         if self.playing:
             stopping = self.playing == direction
@@ -1413,6 +1427,9 @@ class Player(_continuity_part(), QtWidgets.QWidget):
                 self.canvas.update()
                 return
         self.playing = direction
+        lo, hi = self._play_window()
+        if not lo <= self.pos < hi:            # outside the focus: play it from its start
+            self.pos = lo if direction > 0 else hi - 1
         self.origin = self.pos
         self.loops = 0
         self.clock.restart()
@@ -1429,17 +1446,18 @@ class Player(_continuity_part(), QtWidgets.QWidget):
     def _tick(self):
         if not self.playing:
             return
-        n = self.total
+        lo, hi = self._play_window()
+        n = max(1, hi - lo)
         i = self.origin + self.playing * int(self.clock.nsecsElapsed() * 1e-9 * self.fps)
         if self.loop:
-            loops = i // n
-            i %= n
+            loops = (i - lo) // n
+            i = lo + (i - lo) % n
             if loops != self.loops:
                 self.loops = loops
                 if self.playing > 0:
-                    self._play_sound(0)
-        elif not 0 <= i < n:
-            i = min(max(i, 0), n - 1)
+                    self._play_sound(lo)
+        elif not lo <= i < hi:
+            i = min(max(i, lo), hi - 1)
             self.playing = 0
             self.sound.stop()
             self._set_play_icons()
@@ -1703,9 +1721,10 @@ class Player(_continuity_part(), QtWidgets.QWidget):
         return QtCore.QPointF(0, 0)
 
     def current_live_frame(self):
-        """Your shot's frame on screen (not a neighbour or reference movie)."""
+        """Your shot's frame on screen, live or shown as a department's movie
+        (b4: drawings and focus work on both); None on a neighbour."""
         seg, local = self._locate(self.pos)
-        if seg["kind"] != "live" or seg.get("ref"):
+        if seg["kind"] != "live":
             return None
         return self.start + local
 
@@ -1735,6 +1754,8 @@ class Player(_continuity_part(), QtWidgets.QWidget):
         return True
 
     def canvas_move(self, canvas, event):
+        if not event.buttons() and not self._handle_drag:
+            self._hover_handle_at(canvas, event)
         if self._handle_drag:
             frame = self._frame_at(canvas, event)
             if self._handle_drag == "in":
@@ -1751,6 +1772,18 @@ class Player(_continuity_part(), QtWidgets.QWidget):
         if self.drawer.on and not self.input_mode:
             self.drawer.hover_at(self._point(event))     # the size circle follows the pointer
         return self.drawer.on and bool(event.buttons() & Qt.LeftButton)
+
+    def _hover_handle_at(self, canvas, event):
+        """b4: a focus handle under the pointer lights up, with a sideways cursor."""
+        handle = None if self.playing else self._handle_at(canvas, event)
+        if handle == getattr(self, "_hover_handle", None):
+            return
+        self._hover_handle = handle
+        if handle:
+            canvas.setCursor(Qt.SizeHorCursor)
+        else:
+            canvas.setCursor(Qt.CrossCursor if self.drawer.on else Qt.ArrowCursor)
+        canvas.update()
 
     def canvas_release(self, canvas, event):
         if self._handle_drag:
@@ -1893,6 +1926,8 @@ class Player(_continuity_part(), QtWidgets.QWidget):
         target = view
         if img is not None and not img.isNull():
             target = self._paint_frame(p, view, img, live and not ref, frame, stale)
+            if ref:
+                self._paint_drawings_on_ref(p, target, frame)
         else:
             p.setPen(QtGui.QColor(150, 150, 150))
             p.drawText(view, Qt.AlignCenter, self._no_frame_text(p, view, seg, live, ref))
@@ -1924,6 +1959,21 @@ class Player(_continuity_part(), QtWidgets.QWidget):
             p.setPen(QtGui.QPen(QtGui.QColor(220, 60, 60), 4))
             p.drawRect(target.adjusted(2, 2, -2, -2))
         return target
+
+    def _paint_drawings_on_ref(self, p, target, frame):
+        """b4: your drawings stay on when your shot shows a department's
+        movie (same shot, same frames), fitted to the shot's frame shape
+        inside the movie's picture; you can keep drawing there too."""
+        w, h = float(self.drawer.W), float(self.drawer.H)
+        scale = min(target.width() / w, target.height() / h)
+        fit = QtCore.QRect(target.x() + int((target.width() - w * scale) / 2),
+                           target.y() + int((target.height() - h * scale) / 2), int(w * scale), int(h * scale))
+        self.last_target = fit
+        try:
+            self.drawer.paint_paper(p, fit)
+            self.drawer.paint(p, fit, frame)
+        except Exception as error:
+            print("bgcache player: drawing: %s" % error)
 
     def _no_frame_text(self, p, view, seg, live, ref):
         """What the picture says when there's no frame to show (the spinner
@@ -1961,13 +2011,15 @@ class Player(_continuity_part(), QtWidgets.QWidget):
         self._overlay(p, target, left, Qt.AlignLeft, 13)
         self._overlay(p, target, right, Qt.AlignRight, 15)
         tag_y = 0
-        if self.drawer.on and live and not ref:
+        if self.drawer.on and live:
             mine = self.drawer.mine_now()
             layer = mine.active_layer() if mine else None
             dot = " ●" if mine is not None and mine.dirty else ""     # unsaved
             tag_y = self._overlay_tag(p, target, "DRAW · %s%s" % (layer["name"] if layer else "-", dot))
         if live and not ref and getattr(self, "paused", False):
             tag_y = self._overlay_tag(p, target, "PAUSED", y=tag_y, pause_icon=True)
+        if live and self.focus_range:         # b4: why playback stays in part of the shot
+            tag_y = self._overlay_tag(p, target, "FOCUS %d-%d" % self.focus_range, y=tag_y)
         if live and not self.sync:            # easy to miss otherwise (studio, b11)
             self._overlay_tag(p, target, "SYNC OFF", y=tag_y)
         banner = self._reload_banner()
@@ -2131,11 +2183,19 @@ class Player(_continuity_part(), QtWidgets.QWidget):
                 p.fillRect(QtCore.QRect(x0, bar.y(), xa - x0, bar.height()), shade)
             if x1 > xb:
                 p.fillRect(QtCore.QRect(xb, bar.y(), x1 - xb, bar.height()), shade)
-        color = FOCUS if self.focus_range else QtGui.QColor(120, 120, 120)
-        for x, inward in ((xa, 1), (xb - 2, -1)):
-            p.fillRect(QtCore.QRect(x, bar.y(), 2, bar.height()), color)
-            p.fillRect(QtCore.QRect(x if inward > 0 else x - 3, bar.y(), 5, 2), color)
-            p.fillRect(QtCore.QRect(x if inward > 0 else x - 3, bar.bottom() - 1, 5, 2), color)
+        hover = getattr(self, "_hover_handle", None) or self._handle_drag
+        for x, inward, name in ((xa, 1, "in"), (xb, -1, "out")):
+            color = FOCUS if self.focus_range else QtGui.QColor(175, 175, 175)
+            if hover == name:
+                color = color.lighter(125)
+            # b4: a tab above the bar, pointing inward, so a handle shows even
+            # at the window's edge; and a 3 px line down the bar
+            p.fillRect(QtCore.QRect(x if inward > 0 else x - 3, bar.y(), 3, bar.height()), color)
+            tab = QtGui.QPolygon([QtCore.QPoint(x, bar.y() - TAB_H), QtCore.QPoint(x + inward * TAB_W, bar.y() - TAB_H),
+                                  QtCore.QPoint(x, bar.y())])
+            p.setPen(Qt.NoPen)
+            p.setBrush(color)
+            p.drawPolygon(tab)
 
 
 def _name_and_icon(app):

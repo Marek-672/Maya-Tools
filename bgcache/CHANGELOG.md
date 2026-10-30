@@ -14,6 +14,11 @@
   folder; each computer says once where that folder is.
 - **ffmpeg:** if movies need it and it isn't there, "Download it for me"
   fetches a fixed, checked build into ~/.bgcache/ffmpeg (only on that click).
+- **Focus range plays too:** with a focus set, Play plays (and loops) only
+  those frames, with a FOCUS tag on the picture. The handles have tabs, so
+  they're easy to see and grab even at the window's edges.
+- **Drawings stay on** when your shot shows a department's movie instead of
+  Live, and you can keep drawing there.
 
 ## 0.9.0 beta 3
 

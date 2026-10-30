@@ -840,7 +840,7 @@ class Drawer(object):
             self.panel.refresh()
         self.player.canvas.setCursor(Qt.CrossCursor if on else Qt.ArrowCursor)
         try:
-            self.player.canvas.setMouseTracking(bool(on))       # for the size circle
+            self.player.canvas.setMouseTracking(True)       # the size circle; b4: the focus handles' hover
         except Exception:  # cosmetic only (the size circle)
             pass
         if not on:

@@ -65,3 +65,36 @@ P._after_setup()
 assert P.shot_ids and P.live_shot == "sh010" and P.continuity_on and listed == [1] and len(cards) == 1
 assert reel.cr.list_shots_in_sequence("", P.shot_ids[2]) == ["sh010", "sh020"]
 print("ok: after Save the player places the scene in its shot, turns continuity on and lists the shots")
+
+# your drawings stay on (and drawable) while your shot shows a department's movie
+P._locate = lambda pos: ({"kind": "live", "ref": ["/m/1"], "n": 48}, 5)
+assert P.current_live_frame() == P.start + 5
+P._locate = lambda pos: ({"kind": "shot", "n": 48}, 5)
+assert P.current_live_frame() is None
+assert "self._paint_drawings_on_ref(p, target, frame)" in src and "if self.drawer.on and live:" in src
+print("ok: drawings stay on, and can be drawn, when your shot shows a department's movie; not on neighbours")
+
+# a focus range is also the play range (b4): Play stays inside it, loops it, skips neighbours
+del P._locate
+P._offsets = lambda: [(0, {"kind": "shot", "n": 24}), (24, {"kind": "live", "n": 48}), (72, {"kind": "shot", "n": 24})]
+P.total = 96
+P.focus_range = None
+assert P._play_window() == (0, 96)
+P.focus_range = (P.start + 10, P.start + 19)
+assert P._play_window() == (34, 44)
+P.pos = 3                                    # on the shot before yours
+P.sound = mock.MagicMock()
+P.toggle_play(1)
+assert P.pos == 34 and P.origin == 34
+P.loop = True
+P.clock = mock.MagicMock()
+P.clock.nsecsElapsed.return_value = int(12 / P.fps * 1e9)    # 12 frames later: wrapped to the start
+P._tick()
+assert P.pos == 36, P.pos
+P.loop = False
+P.clock.nsecsElapsed.return_value = int(30 / P.fps * 1e9)
+P._tick()
+assert P.pos == 43 and P.playing == 0
+assert '"FOCUS %d-%d" % self.focus_range' in src and "TAB_W, TAB_H" in src
+print("ok: with a focus range, Play plays only those frames (looping them with Loop on), skipping neighbouring "
+      "shots; a FOCUS tag says so; the handles have tabs that show at the window's edges")
