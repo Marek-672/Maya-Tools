@@ -643,7 +643,7 @@ class Drawer(object):
     def save_now(self):
         """Save: your drawings go to the shared file, a new version. Returns
         True if everything was saved."""
-        ok = True
+        ok, warned = True, False
         for cam, mine in list(self.mine.items()):
             if not mine.dirty:
                 continue
@@ -651,13 +651,17 @@ class Drawer(object):
             if error and not mine.path.startswith(self.fallback_root):
                 mine.path = drawing.layers_path(self.fallback_root, self.user, cam)
                 error2 = mine.save()
-                if not self.saved_warned:
-                    self.saved_warned = True
+                if not self.saved_warned or error2:
+                    self.saved_warned = warned = True
                     self.player._flash_message(
                         "Couldn't save in the shot folder (%s); saved in your home folder" % error
                         if not error2 else "Couldn't save drawings: %s" % error2, 6.0)
                 ok = ok and not error2
-        if ok:
+            elif error:
+                ok = False
+                warned = True
+                self.player._flash_message("Couldn't save drawings: %s" % error, 6.0)
+        if ok and not warned:
             self.player._flash_message("Drawings saved", 2.0)
         if self.panel is not None:
             self.panel.refresh_save()
