@@ -83,9 +83,11 @@ mac_maya = touch_exe(os.path.join(app, "MacOS", "Maya"))
 mac_py = touch_exe(os.path.join(app, "bin", "mayapy"))
 if os.sep == "/":                  # Mac paths: only checked on macOS and Linux
     with mock.patch.dict(os.environ, {"MAYA_LOCATION": app}):
-        assert macos.find_maya() == mac_maya and macos.find_mayapy() == mac_py
+        got = (macos.find_maya(), macos.find_mayapy())
+        assert got == (mac_maya, mac_py), (got, mac_maya, mac_py)
     with mock.patch.dict(os.environ, {"MAYA_LOCATION": ""}), mock.patch.object(sys, "executable", mac_maya):
-        assert macos.find_maya() == mac_maya and macos.find_mayapy() == mac_py
+        got = (macos.find_maya(), macos.find_mayapy())
+        assert got == (mac_maya, mac_py), (got, mac_maya, mac_py)
 print("ok: macOS: MacOS/Maya and bin/mayapy inside Maya.app, from MAYA_LOCATION or the running Maya")
 
 # ---- Linux: exactly the old order, the studio wrapper only from the profile

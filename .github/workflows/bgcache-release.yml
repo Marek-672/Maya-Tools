@@ -3,13 +3,11 @@ name: BGCache release
 # Builds the BGCache downloads and makes a DRAFT release with them. Nothing
 # is public until you open the draft on the Releases page and press Publish.
 #
-# Start it either way:
-#   - Actions tab > "BGCache release" > Run workflow (type the version), or
-#   - push a tag named bgcache-v<version>, e.g. bgcache-v0.9.0b1.
-# The release text comes from .github/release-notes/bgcache-<version>.md.
+# Start it from the Actions tab > "BGCache release" > Run workflow (type the
+# version). Not on tags: publishing a release makes its tag, and that must not
+# start a second draft. The release text comes from
+# .github/release-notes/bgcache-<version>.md.
 on:
-  push:
-    tags: ["bgcache-v*"]
   workflow_dispatch:
     inputs:
       version:
@@ -31,7 +29,7 @@ jobs:
         id: v
         shell: bash
         run: |
-          if [ -n "${{ github.event.inputs.version }}" ]; then v="${{ github.event.inputs.version }}"; else v="${GITHUB_REF_NAME#bgcache-v}"; fi
+          v="${{ github.event.inputs.version }}"
           code=$(python -c "import re;print(re.search(r'__version__ = \"(.+?)\"', open('bgcache/bgcache/__init__.py').read()).group(1))")
           if [ "$v" != "$code" ]; then echo "::error::Asked for $v but the code says $code"; exit 1; fi
           echo "version=$v" >> "$GITHUB_OUTPUT"
@@ -49,6 +47,7 @@ jobs:
           v="${{ steps.v.outputs.version }}"
           notes=".github/release-notes/bgcache-$v.md"
           [ -f "$notes" ] || { echo "::error::No release notes in $notes"; exit 1; }
+          if gh release view "bgcache-v$v" >/dev/null 2>&1; then echo "::error::A release bgcache-v$v already exists"; exit 1; fi
           pre=""; case "$v" in *a*|*b*|*rc*) pre="--prerelease";; esac
           gh release create "bgcache-v$v" dist/bgcache-$v-*-simple.zip \
             --draft $pre --target "$GITHUB_SHA" \
