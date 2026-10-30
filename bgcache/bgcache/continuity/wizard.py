@@ -282,12 +282,22 @@ class Wizard(QtWidgets.QDialog):
 
     def pick_movie(self):
         path = QtWidgets.QFileDialog.getOpenFileName(
-            self, "One movie of this shot", os.path.dirname(self.scene),
+            self, "One movie of this shot", self._start_folder(),
             "Movies and images (*.mov *.mp4 *.m4v *.jpg *.jpeg *.png *.exr *.tif *.tiff *.dpx);;All files (*)")[0]
         if path:
             self.use_movie(path)
 
+    def _start_folder(self):
+        """Where file pickers open: the last folder used here, else above
+        the scene's own folder (a scenes folder holds no movies)."""
+        last = getattr(self, "_last_folder", "")
+        if last and os.path.isdir(last):
+            return last
+        folder = os.path.dirname(self.scene)
+        return os.path.dirname(folder) if folder else os.path.expanduser("~")
+
     def use_movie(self, path, known=None):
+        self._last_folder = os.path.dirname(os.path.dirname(path))
         self.c_movie.set_picked(True)
         self.c_search.set_picked(False)
         self._pending = ("movie", path)
@@ -296,7 +306,7 @@ class Wizard(QtWidgets.QDialog):
 
     def pick_folders(self):
         folder = QtWidgets.QFileDialog.getExistingDirectory(self, "A folder with your footage",
-                                                            os.path.dirname(self.scene))
+                                                            self._start_folder())
         if folder:
             self.use_folder(folder)
 
