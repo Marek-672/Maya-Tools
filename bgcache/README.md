@@ -68,12 +68,13 @@ The user guide is [bgcache/README.md](bgcache/README.md).
 
 ## Reporting a problem
 
-In the player, **Help > Report a problem**: write what happened, then
-**Save report...**. The zip holds what you wrote, your versions and system,
-the session's logs and the newest Self-test (**Help > Self-test** first makes
-it more useful); **Hide names** keeps scene and user names out. Then open an
-[issue](https://github.com/Marek-672/Maya-Tools/issues/new/choose) and attach
-the zip.
+In the player, **Help > Report a problem**: write what happened (and an email
+if you'd like an answer), then **Send**. It goes straight to me, with your
+versions and system, the session's logs and the newest Self-test (**Help >
+Self-test** first makes it more useful). You see the list before anything is
+sent, and **Hide names** (on) keeps scene and user names out. Prefer GitHub?
+**Save report...** and attach the zip to an
+[issue](https://github.com/Marek-672/Maya-Tools/issues/new/choose).
 
 ## Support
 

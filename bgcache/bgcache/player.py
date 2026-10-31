@@ -268,6 +268,7 @@ class ReportDialog(QtWidgets.QDialog):
         row.addWidget(save)
         if can_send:
             send = QtWidgets.QPushButton("Send")
+            send.setToolTip("Sends the report to bgcache's author (only when you click)")
             send.setDefault(True)
             send.clicked.connect(lambda: self._done("send"))
             row.addWidget(send)

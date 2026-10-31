@@ -111,7 +111,8 @@ DEFAULT = {
     "github_releases": "Marek-672/Maya-Tools",
     # Help > Report a problem (0.9.0b3):
     # reports_url: a Google Apps Script web app that files reports in a
-    # Drive folder (tools/reports_receiver.gs). Empty: no Send, Save only.
+    # Drive folder (tools/reports_receiver.gs). The default sends them to
+    # bgcache's author; a studio sets "" (Save only) or its own.
     # reports_folder: where Save report... starts (a pipeline folder, say).
     # Empty: your home folder.
     # 0.9.0b4, footage outside shot folders (the setup wizard writes these):
@@ -137,7 +138,7 @@ DEFAULT = {
     # {project} in the team's paths (P:/FILM on Windows, /Volumes/FILM on a Mac).
     "team_settings": "",
     "project_folder": "",
-    "reports_url": "",
+    "reports_url": "https://script.google.com/macros/s/AKfycbxvqrA4Uwsksy4NeuO1zhbzazfk0KgRdL62mumHj9aZ39GCbVAaBL2X_GNUxHNkDbA9/exec",
     "reports_folder": "",
 }
 

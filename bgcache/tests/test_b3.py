@@ -31,12 +31,16 @@ assert 'self.drawer.ask_to_save(self, "closing the player")' in close
 print("ok: Ctrl+S saves drawings; DRAW tag shows a dot while unsaved; Stop and closing ask Save / Don't save / Cancel")
 
 # ---- Report a problem
-assert profile.DEFAULT["reports_url"] == "" and profile.DEFAULT["reports_folder"] == ""
+assert profile.DEFAULT["reports_url"].startswith("https://script.google.com/macros/s/") and \
+    profile.DEFAULT["reports_folder"] == ""
+studio = json.load(open(os.path.join(REPO, "studio_private", "profile.json"))) \
+    if os.path.isdir(os.path.join(REPO, "studio_private")) else {"reports_url": ""}
+assert studio["reports_url"] == ""
 c = open(os.path.join(REPO, "bgcache", "controller.py")).read()
 assert '"reports_url": profile.get("reports_url") or ""' in c
 assert 'help_menu.addAction("Report a problem...", self.report_problem)' in p
 assert "if can_send:" in p and 'QPushButton("Save report...")' in p
-print("ok: Help > Report a problem; Send only when the profile has reports_url (empty by default)")
+print("ok: Help > Report a problem; Send goes to the author's Drive by default; studio builds Save only")
 
 session = "sess1"
 logs = common.log_dir(session)

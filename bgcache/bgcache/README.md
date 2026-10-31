@@ -188,7 +188,7 @@ bgc.shelf_click(maya_cmd=["/path/to/maya_wrapper"], mayapy_cmd=["/path/to/mayapy
 
 ## Report a problem
 
-In the player, **Help > Report a problem**: write what happened (and an email if you'd like an answer). The report adds your versions and system, this session's `worker.log`, `player.log` and `trace.log` (the end of each), the newest Self-test and the player settings, and lists them before anything leaves. **Hide names** (on) replaces the show, sequence, shot, scene and your user name with SHOW / SEQ / SHOT / SCENE / USER. **Save report...** writes a zip to pass on. **Send** appears only when whoever set bgcache up has switched it on (the profile's `reports_url`); then the report goes straight to them.
+In the player, **Help > Report a problem**: write what happened (and an email if you'd like an answer). The report adds your versions and system, this session's `worker.log`, `player.log` and `trace.log` (the end of each), the newest Self-test and the player settings, and lists them before anything leaves. **Hide names** (on) replaces the show, sequence, shot, scene and your user name with SHOW / SEQ / SHOT / SCENE / USER. **Save report...** writes a zip to pass on. **Send** posts it to the address in the profile's `reports_url`: by default bgcache's author (only when you click); studio builds set it empty, so there you save the report and pass it on.
 
 ## Self-test
 
