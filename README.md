@@ -5,7 +5,7 @@ Free and open source (MIT).
 
 | Tool | What it does | Status |
 |---|---|---|
-| **[BGCache](bgcache/)** | Live playback for heavy shots. A hidden second Maya re-playblasts only the frames your edits change, and a player plays them at full speed with sound, while you keep animating. Draw over it, too. | **Beta: download it** |
+| **[BGCache](bgcache/)** | Live playback for heavy shots. A hidden second Maya re-playblasts only the frames your edits change, and a player plays them at full speed with sound, while you keep animating. Draw over it, too. Two free editions: **Simple** (cache, player, drawing) and **Full**, which adds continuity: the shots around yours play as one reel with your live shot. | **Beta: download it** |
 | **Shot Transfer** | Copy animation and constraints (prop attach setups too) from another shot's file into yours, one frame or the whole range, without opening that file. | Coming soon |
 | **Reference Editor** | Bring your video reference into your shot. It finds the takes in your reference file automatically. Pick and trim the ones you want, then place them in Maya: on the shot camera, in front of or behind your character, or as free planes in the scene. | Coming soon |
 

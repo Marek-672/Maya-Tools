@@ -137,6 +137,24 @@ p { max-width: 65ch; }
   .feature:nth-of-type(even) .text { order: 0; }
 }
 
+.ed { display: inline-block; font: 600 0.72rem/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: #1a1006; background: var(--orange); padding: 5px 8px; border-radius: 3px; margin-bottom: 10px; }
+.reel { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: #0c0d0e; box-shadow: 0 24px 50px -28px rgba(0,0,0,.9); }
+.clips { position: relative; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 3px; padding: 14px 12px; }
+.clip { aspect-ratio: 16 / 10; border-radius: 3px; border: 1px solid var(--line); background: linear-gradient(160deg, #2c2f33, #17191b); display: grid; align-content: end; padding: 6px; min-width: 0; }
+.clip b { font: 600 0.72rem/1.2 var(--mono); color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.clip small { font: 400 0.66rem/1.2 var(--mono); color: var(--muted); }
+.clip.live { border-color: var(--orange); background: linear-gradient(160deg, rgba(232,145,74,.35), #1d1410); box-shadow: 0 0 18px -4px var(--orange); }
+.clip.live small { color: var(--orange); }
+.reelhead { position: absolute; top: 8px; bottom: 8px; left: 12px; width: 2px; background: var(--ink); box-shadow: 0 0 6px rgba(255,255,255,.5); animation: reel 7s linear infinite; }
+@keyframes reel { from { left: 12px; } to { left: calc(100% - 14px); } }
+.reel .cacheinfo { background: var(--panel); border-top: 1px solid var(--line); padding: 10px 12px; }
+.editions { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.edition { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 22px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+.edition.full { border-color: var(--orange-deep); background: linear-gradient(160deg, rgba(232,145,74,.12), var(--panel) 60%); }
+.edition ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; color: var(--muted); }
+.edition li { padding-left: 18px; position: relative; }
+.edition li::before { content: ""; position: absolute; left: 0; top: .6em; width: 7px; height: 7px; background: var(--orange); transform: rotate(45deg); }
+.edition .note { margin: 4px 0 0; overflow-wrap: anywhere; }
 .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
 .facts > div { background: var(--panel); padding: 16px 18px; }
 .facts dt { font: 500 var(--step--1)/1.2 var(--mono); color: var(--orange); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
@@ -181,6 +199,7 @@ footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wr
     <nav aria-label="Sections">
       <a href="#how">How it works</a>
       <a href="#features">Features</a>
+      <a href="#editions">Editions</a>
       <a href="#install">Install</a>
       <a href="#tools">Tools</a>
       <a href="https://github.com/Marek-672/Maya-Tools">GitHub</a>
@@ -195,7 +214,7 @@ footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wr
 <main id="top">
   <div class="wrap hero">
     <div>
-      <div class="eyebrow">BGCache · free beta · Maya 2024+</div>
+      <div class="eyebrow">BGCache · free beta · Simple and Full editions</div>
       <h1><span class="line">Edit a key.</span><span class="line hot">Watch it play.</span></h1>
       <p class="lede">Heavy rigs can't play in real time, so you playblast again and again. BGCache does it for you in the background: a hidden second Maya re-playblasts <em>only the frames your edit changed</em>, the one you're on first, and a player plays the shot at full speed with sound while you keep animating.</p>
       <div class="cta">
@@ -256,9 +275,33 @@ footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wr
       <div class="feature">
         <div class="text">
           <h3>Focus range</h3>
-          <p>Working on one bounce? Drag the two handles on the cache bar, or press I and O, and BGCache caches only that part first. Playback still covers the whole shot, and Maya's time slider isn't touched.</p>
+          <p>Working on one bounce? Drag the two handles on the cache bar, or press I and O. BGCache caches only that part first, and Play loops just those frames. Maya's time slider isn't touched.</p>
         </div>
         <figure><img src="img/player_focus.png" width="1280" height="760" alt="The cache bar with yellow focus handles around frames 9 to 33; the status line reads focus 9-33."></figure>
+      </div>
+      <div class="feature">
+        <div class="text">
+          <span class="ed">Full edition</span>
+          <h3>Continuity</h3>
+          <p>See your shot in the cut. The shots around yours play as one reel with your live shot, from any department's movies or image sequences.</p>
+          <ul>
+            <li><b>Set up continuity</b>: show it one movie of your shot and it learns where your film keeps its footage, then finds every other shot's newest version</li>
+            <li>Footage all over the place? Point it at folders and it searches them for files named after your shots</li>
+            <li>Drop in an edit (EDL or XML) and shots follow the cut</li>
+            <li>Works for one person or a team: shared drawings and one setup for everyone</li>
+          </ul>
+        </div>
+        <div class="reel" role="img" aria-label="Five shots in a row as one reel: two shots before yours, your shot playing live in the middle, and two shots after it, with a playhead moving across all of them.">
+          <div class="clips">
+            <div class="clip"><b>sh010</b><small>Final</small></div>
+            <div class="clip"><b>sh020</b><small>Lighting</small></div>
+            <div class="clip live"><b>Your shot</b><small>Live</small></div>
+            <div class="clip"><b>sh040</b><small>Anim</small></div>
+            <div class="clip"><b>sh050</b><small>Layout</small></div>
+            <div class="reelhead"></div>
+          </div>
+          <div class="cacheinfo"><span>Continuity: <b>5 shots</b> as one reel</span><span>Follows the cut</span></div>
+        </div>
       </div>
       <div class="feature">
         <div class="text">
@@ -274,21 +317,52 @@ footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wr
           <div><dt>Edit to screen</dt><dd>The frame you're on is re-cached first</dd></div>
           <div><dt>Cameras</dt><dd>Any shot camera; persp, top, front and side are ignored</dd></div>
           <div><dt>Sound</dt><dd>Your time slider's sound, in sync</dd></div>
-          <div><dt>Drawings</dt><dd>Saved next to your scene or project</dd></div>
+          <div><dt>Drawings</dt><dd>Kept when you press Save, with a history of the last 10</dd></div>
         </dl>
+      </div>
+    </div>
+  </section>
+
+  <section id="editions">
+    <div class="wrap">
+      <div class="ruler" aria-hidden="true"><b style="left:0">80</b><b class="key" style="left:120px">90</b><b style="left:240px">100</b><b style="left:360px">110</b></div>
+      <h2>Two editions, both free</h2>
+      <p class="sub">Same player, same installer. Start with either one, and move from Simple to Full later by dragging in the Full installer.</p>
+      <div class="editions">
+        <div class="edition">
+          <span class="status">Simple</span>
+          <h3>Cache, player and drawing</h3>
+          <ul>
+            <li>Live playback that re-caches only the frames you changed</li>
+            <li>Drawing over playback, Blue Pencil export</li>
+            <li>Focus range, Refresh, Pause, Self-test</li>
+          </ul>
+          <p class="note">bgcache-&lt;version&gt;-&lt;system&gt;-simple.zip</p>
+        </div>
+        <div class="edition full">
+          <span class="status beta">Full</span>
+          <h3>Everything in Simple, plus continuity</h3>
+          <ul>
+            <li>The shots around yours play as one reel with your live shot</li>
+            <li>Set up continuity finds your film's footage from one movie</li>
+            <li>Follows the cut from an EDL or XML; works for teams</li>
+            <li>Movies need ffmpeg: if it's missing, one click downloads it</li>
+          </ul>
+          <p class="note">bgcache-&lt;version&gt;-&lt;system&gt;-full.zip</p>
+        </div>
       </div>
     </div>
   </section>
 
   <section id="install">
     <div class="wrap">
-      <div class="ruler" aria-hidden="true"><b style="left:0">80</b><b style="left:120px">90</b><b class="key" style="left:240px">100</b><b style="left:360px">110</b></div>
+      <div class="ruler" aria-hidden="true"><b style="left:0">120</b><b style="left:120px">130</b><b class="key" style="left:240px">140</b><b style="left:360px">150</b></div>
       <h2>Install in a minute</h2>
       <p class="sub">It installs as a Maya module in your own Maya folder and never edits <code>userSetup.py</code> or <code>Maya.env</code>.</p>
       <ol class="install">
-        <li>Download the zip for your system from <a href="https://github.com/Marek-672/Maya-Tools/releases">Releases</a> and unzip it.</li>
+        <li>Download the zip for your system from <a href="https://github.com/Marek-672/Maya-Tools/releases">Releases</a>, Simple or Full, and unzip it.</li>
         <li>Drag <code>install_bgcache.py</code> into a Maya viewport and choose <b>Install</b>. No restart needed.</li>
-        <li>Click the new <b>bgcache</b> shelf button. Pick a camera and it starts caching.</li>
+        <li>Click the new <b>bgcache</b> shelf button. Pick a camera and it starts caching. Full edition: click <b>Continuity</b> and show it one movie of your shot.</li>
       </ol>
       <p class="note" style="margin-top:20px">To update, drag the new version's installer in the same way (your old copy is kept). The same installer also uninstalls.</p>
       <div class="facts" style="margin-top:24px">
@@ -302,11 +376,11 @@ footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wr
 
   <section id="tools">
     <div class="wrap">
-      <div class="ruler" aria-hidden="true"><b style="left:0">120</b><b style="left:120px">130</b><b style="left:240px">140</b><b class="key" style="left:360px">150</b></div>
+      <div class="ruler" aria-hidden="true"><b style="left:0">160</b><b style="left:120px">170</b><b style="left:240px">180</b><b class="key" style="left:360px">190</b></div>
       <h2>More tools on the way</h2>
       <p class="sub">The same idea behind each one: less waiting, more animating.</p>
       <div class="tools">
-        <div class="tool live"><span class="status beta">Beta · download</span><h3>BGCache</h3><p>Live playback for heavy shots, with drawing over playback.</p></div>
+        <div class="tool live"><span class="status beta">Beta · download</span><h3>BGCache</h3><p>Live playback for heavy shots, with drawing over playback. The Full edition adds continuity: the shots around yours as one reel.</p></div>
         <div class="tool"><span class="status">Coming soon</span><h3>Shot Transfer</h3><p>Copy animation and constraints, prop attach setups too, from another shot's file into yours: one frame or the whole range, without opening that file.</p></div>
         <div class="tool"><span class="status">Coming soon</span><h3>Reference Editor</h3><p>Bring your video reference into your shot. It finds the takes in your reference file automatically. Pick and trim the ones you want, then place them in Maya: on the shot camera, in front of or behind your character, or as free planes in the scene.</p></div>
       </div>
