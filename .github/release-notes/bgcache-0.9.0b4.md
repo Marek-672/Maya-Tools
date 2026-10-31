@@ -15,6 +15,7 @@ Nothing is saved until you press Save. Pipeline TDs can still write the settings
 ### Also new
 - **Focus range plays too:** with a focus set, Play plays and loops only those frames. The handles have tabs, so they're easy to grab at the window's edges.
 - **Drawings stay on** when your shot shows a department's movie instead of Live.
+- **Help > Report a problem > Send:** your report comes straight to me (only when you click; you see what's in it first, and Hide names keeps scene and user names out).
 
 ### Download
 **Which one?** Simple if you just want your own shot playing in real time with drawing. Full adds continuity: the shots around yours playing with it. Full does everything Simple does, and continuity stays off until you set it up, so if you're unsure, take Full. **Help > About** in the player says which one you have.
@@ -31,4 +32,4 @@ Nothing is saved until you press Save. Pipeline TDs can still write the settings
 
 Full list of changes: [CHANGELOG](https://github.com/Marek-672/Maya-Tools/blob/main/bgcache/CHANGELOG.md). User guide: [bgcache/README.md](https://github.com/Marek-672/Maya-Tools/blob/main/bgcache/bgcache/README.md).
 
-**Beta:** problems to **Help > Report a problem** and [Issues](https://github.com/Marek-672/Maya-Tools/issues/new/choose). If BGCache saves you time, you can say thanks at [ko-fi.com/marekkochout](https://ko-fi.com/marekkochout).
+**Beta:** problems to **Help > Report a problem > Send**, or [Issues](https://github.com/Marek-672/Maya-Tools/issues/new/choose). If BGCache saves you time, you can say thanks at [ko-fi.com/marekkochout](https://ko-fi.com/marekkochout).
