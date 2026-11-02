@@ -231,6 +231,13 @@ case("dated_names", ["f/edit/sh010_20261028.mov", "f/edit/sh010_20261030.mov", "
      movie="f/edit/sh010_20261030.mov", shot="sh010", shots=["sh010", "sh020"],
      resolves={("sh010", None): "sh010_20261030.mov"})
 
+# 22b. AVI, MKV and DPX / TGA sequences (b5)
+case("more_formats", ["f/sh010/blast/sh010_blast_v001.avi", "f/sh010/blast/sh010_blast_v002.mkv",
+                      "f/sh020/blast/sh020_blast_v003.avi",
+                      "f/sh010/comp/v001/sh010_comp.1001.dpx", "f/sh020/comp/v002/sh020_comp.1001.tga"],
+     movie="f/sh010/blast/sh010_blast_v002.mkv", shot="sh010", depts=["blast", "comp"],
+     resolves={("sh020", "blast"): "sh020_blast_v003.avi", ("sh020", "comp"): "v002/sh020_comp.1001.tga"})
+
 # 23. not footage at all
 case("not_footage", ["f/sh010/notes.txt"], movie="f/sh010/notes.txt", problem="isn't a movie")
 

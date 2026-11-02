@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.0 beta 5
+
+- **More footage formats in continuity:** AVI, MKV, MXF, WebM and other movies
+  ffmpeg plays, and image sequences in EXR, DPX, TGA and more (EXR and DPX
+  are read through ffmpeg).
+
 ## 0.9.0 beta 4
 
 - **The Full edition is out:** continuity, the strip of shots around yours,

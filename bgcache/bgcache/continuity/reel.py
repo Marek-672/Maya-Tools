@@ -139,6 +139,12 @@ def resolve(show, shot, department=None, thumb_size=(168, 60), version=None):
         path = cr.get_thumbnail(shot, info)
         if path:
             img = QtGui.QImage(path)
+            if img.isNull() and ffmpeg():       # b5: an EXR / DPX first frame
+                thumb = os.path.join(cr.THUMB_CACHE_DIR, shot, "%s_v%s_first.jpg" % (info["department"],
+                                                                                   info["version"]))
+                os.makedirs(os.path.dirname(thumb), exist_ok=True)
+                _frame_with_ffmpeg(path, thumb, 120)
+                img = QtGui.QImage(thumb)
             if not img.isNull():
                 img = img.scaled(thumb_size[0], thumb_size[1], QtCore.Qt.KeepAspectRatio,
                                  QtCore.Qt.SmoothTransformation)
@@ -323,13 +329,15 @@ def prepare_frames(shot, info, height, report):
         if not files:
             raise RuntimeError("no frames in %s" % src)
         for i, name in enumerate(files):
+            target = os.path.join(out, "f.%d.jpg" % (i + 1))
             img = QtGui.QImage(os.path.join(src, name))
-            if img.isNull():
-                raise RuntimeError("unreadable frame %s" % name)
-            if img.height() > height:
-                img = img.scaledToHeight(height, QtCore.Qt.SmoothTransformation)
-            if not img.save(os.path.join(out, "f.%d.jpg" % (i + 1)), "JPG", 85):
-                raise RuntimeError("could not write %s" % out)
+            if img.isNull():                  # EXR, DPX...: Qt can't, ffmpeg can (b5)
+                _frame_with_ffmpeg(os.path.join(src, name), target, height)
+            else:
+                if img.height() > height:
+                    img = img.scaledToHeight(height, QtCore.Qt.SmoothTransformation)
+                if not img.save(target, "JPG", 85):
+                    raise RuntimeError("could not write %s" % out)
             if i % 8 == 0:
                 report((i + 1) / float(len(files)))
     else:
@@ -354,6 +362,23 @@ def prepare_frames(shot, info, height, report):
         json.dump({"source": info["source_path"], "frames": len(frames),
                    "stamp": source_stamp(info)}, handle)
     return frames
+
+
+def _frame_with_ffmpeg(path, target, height):
+    """One image Qt can't read (EXR, DPX, HDR...), as a JPEG via ffmpeg.
+    EXR and HDR are linear: shown with the sRGB curve, as a viewer would."""
+    exe = ffmpeg()
+    if not exe:
+        raise RuntimeError("can't read %s without ffmpeg (bgcache > Set up continuity... can download it)"
+                           % os.path.basename(path))
+    cmd = [exe, "-y", "-v", "error"]
+    if path.lower().endswith((".exr", ".hdr")):
+        cmd += ["-apply_trc", "iec61966_2_1"]
+    cmd += ["-i", path, "-vf", "scale=-2:'min(%d,ih)'" % height, "-q:v", "3", "-frames:v", "1", target]
+    result = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, **common.hidden_console())
+    if result.returncode != 0 or not os.path.isfile(target):
+        raise RuntimeError("unreadable frame %s: %s" % (os.path.basename(path),
+                                                         result.stderr.decode("utf-8", "replace").strip()[-200:]))
 
 
 def shot_frames(shot, info, height, report):

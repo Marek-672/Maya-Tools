@@ -45,7 +45,7 @@ On neighbour shots Maya doesn't move (those frames aren't in your scene); time s
 Click **Continuity** before anything is set up, or **bgcache > Set up continuity...** any time. Five steps along the top:
 
 1. **Footage**: "Where does your continuity footage live?"
-   - **Drop one movie of this shot** (any department; or click to browse). bgcache compares its path with your open scene's and learns the layout: which folder is the shot (and sequence), which the department and version. Versions can be folders or in file names, written `v004`, `_004`, `take3` or as dates; with no number, the newest file is used. Movies (`.mov`, `.mp4`, `.m4v`) and image sequences both work. It then looks one level sideways for the other departments.
+   - **Drop one movie of this shot** (any department; or click to browse). bgcache compares its path with your open scene's and learns the layout: which folder is the shot (and sequence), which the department and version. Versions can be folders or in file names, written `v004`, `_004`, `take3` or as dates; with no number, the newest file is used. Movies (anything ffmpeg plays: `.mov`, `.mp4`, `.avi`, `.mkv`, `.mxf`, `.webm`...) and image sequences (`.jpg`, `.png`, `.tif`, `.tga`, `.exr`, `.dpx`...; EXR and DPX are read through ffmpeg) all work. It then looks one level sideways for the other departments.
    - **My footage is all over the place**: point at one or more folders; bgcache searches them for files named after your shots, wherever they are (dailies filed by date, edit exports, one big folder).
    - Optional: **Add edit...** (an EDL, Final Cut or Premiere XML, or FCPXML) so the shots follow the cut instead of name order.
    - If your scene's name doesn't say which shot it is, it asks you to type it.

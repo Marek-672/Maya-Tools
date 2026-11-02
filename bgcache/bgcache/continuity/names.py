@@ -15,10 +15,19 @@ No Maya, Qt or ffmpeg here.
 import os
 import re
 
-MOVIE_EXTS = (".mov", ".mp4", ".m4v")
-IMAGE_EXTS = ("jpg", "jpeg", "png", "tif", "tiff", "exr", "dpx")
+# Anything ffmpeg plays (0.9.0b5: AVI, MKV, MXF, WebM... as well as MOV and MP4)
+MOVIE_EXTS = (".mov", ".mp4", ".m4v", ".avi", ".mkv", ".webm", ".mxf", ".mpg", ".mpeg", ".wmv",
+              ".flv", ".m2ts", ".mts", ".3gp", ".ogv", ".dv")
+# Image sequences; the ones Qt can't open (EXR, DPX...) go through ffmpeg
+IMAGE_EXTS = ("jpg", "jpeg", "png", "tif", "tiff", "exr", "dpx", "tga", "bmp", "gif", "webp",
+              "hdr", "sgi", "rgb", "iff", "jp2")
 FRAME_RE = re.compile(r"\.(\d+)\.(%s)$" % "|".join(IMAGE_EXTS), re.IGNORECASE)
 _patterns = {}
+
+
+def file_filter():
+    """For file pickers: "Movies and images (*.mov *.mp4 ...)"."""
+    return "Movies and images (%s)" % " ".join(["*" + e for e in MOVIE_EXTS] + ["*." + e for e in IMAGE_EXTS])
 
 
 def is_movie(name):

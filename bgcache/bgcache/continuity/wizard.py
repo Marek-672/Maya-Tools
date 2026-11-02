@@ -31,7 +31,7 @@ except ImportError:  # Maya 2024 and earlier (PySide2)
     from PySide2 import QtCore, QtGui, QtWidgets
 
 from bgcache import profile
-from bgcache.continuity import edit_order, ffmpeg_get, learn, reel, resolver
+from bgcache.continuity import edit_order, ffmpeg_get, learn, names, reel, resolver
 
 Qt = QtCore.Qt
 STEPS = ("Footage", "Shots", "Sound", "Files", "Review")
@@ -283,7 +283,7 @@ class Wizard(QtWidgets.QDialog):
     def pick_movie(self):
         path = QtWidgets.QFileDialog.getOpenFileName(
             self, "One movie of this shot", self._start_folder(),
-            "Movies and images (*.mov *.mp4 *.m4v *.jpg *.jpeg *.png *.exr *.tif *.tiff *.dpx);;All files (*)")[0]
+            names.file_filter() + ";;All files (*)")[0]
         if path:
             self.use_movie(path)
 
@@ -570,7 +570,7 @@ class Wizard(QtWidgets.QDialog):
         start = os.path.dirname(self.lay.get("example") or self.scene)
         path = QtWidgets.QFileDialog.getOpenFileName(
             self, "The movie for %s" % shot, start,
-            "Movies and images (*.mov *.mp4 *.m4v *.jpg *.jpeg *.png *.exr *.tif *.tiff *.dpx)")[0]
+            names.file_filter() + ";;All files (*)")[0]
         if path:
             self.state["by_hand"][(shot, dept)] = learn.norm(path)
             self._enter_shots()
