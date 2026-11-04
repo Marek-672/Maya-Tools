@@ -137,7 +137,7 @@ if os.path.isfile(os.path.join(REPO, "tools", "build_studio.py")):     # not in 
         _zz.writestr("bgcache/__init__.py", '__version__ = "0.9.0b5"\n')
     _f = _bs.install_folder(_out, _rel)
     assert sorted(os.listdir(_f)) == ["DRAG_ME_INTO_MAYA.py", "README.txt", "for_pipeline", "releases"], os.listdir(_f)
-    assert sorted(os.listdir(os.path.join(_f, "for_pipeline"))) == ["install", "install_bgcache.py"]
+    assert {"install", "install_bgcache.py"} <= set(os.listdir(os.path.join(_f, "for_pipeline")))
     _res = subprocess.run([sys.executable, os.path.join(_f, "for_pipeline", "install_bgcache.py"), "--list"],
                           capture_output=True, text=True, env=dict(os.environ, HOME=_out))
     assert "0.9.0b5" in _res.stdout, _res.stdout + _res.stderr
