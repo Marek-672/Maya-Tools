@@ -32,7 +32,17 @@ import zipfile
 HOME = os.path.expanduser("~")
 
 
-RELEASES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "releases")
+def _releases_folder():
+    """releases/ next to this script, or (b5: it lives in for_pipeline/) one
+    level up, in the install folder."""
+    here = os.path.dirname(os.path.abspath(__file__))
+    for folder in (os.path.join(here, "releases"), os.path.join(os.path.dirname(here), "releases")):
+        if os.path.isdir(folder):
+            return folder
+    return os.path.join(here, "releases")
+
+
+RELEASES = _releases_folder()
 
 
 def releases():

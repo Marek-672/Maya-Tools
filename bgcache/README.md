@@ -1,6 +1,6 @@
 # BGCache
 
-**Live playback for heavy Maya shots, while you keep animating.** Part of [MK Anim Tools](https://mkanimtools.com).
+**Live playback for heavy Maya shots, while you keep animating.** Part of MK Anim Tools.
 
 ![The BGCache player](docs/player.png)
 
@@ -54,7 +54,8 @@ Made by an animator for animators. Free and open source (MIT).
    [Releases](https://github.com/Marek-672/Maya-Tools/releases) page and unzip it:
    `bgcache-<version>-<system>-simple.zip` (cache, player, drawing) or
    `bgcache-<version>-<system>-full.zip` (the same plus continuity).
-2. Drag `install_bgcache.py` into a Maya viewport and choose **Install**.
+2. Drag **`DRAG_ME_INTO_MAYA.py`** from the unzipped folder into a Maya viewport and
+   choose **Install**. It's the only file you need to touch.
 3. Click the new **bgcache** shelf button: BGCache starts and the player opens.
    Pick a camera in the player and it starts caching.
 4. Full edition: click **Continuity** in the player and show it one movie of

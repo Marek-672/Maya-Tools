@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.9.0 beta 6
+
+- **Install: one file to drag.** In the download, drag `DRAG_ME_INTO_MAYA.py`
+  into Maya (it used to be called install_bgcache.py). Nothing else changes.
+
 ## 0.9.0 beta 5
 
 - **More footage formats in continuity:** AVI, MKV, MXF, WebM and other movies

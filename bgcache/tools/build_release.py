@@ -7,7 +7,7 @@ Makes, for each system (windows, macos, linux) and edition:
     bgcache-<version>-<system>-simple.zip   playback + drawing
     bgcache-<version>-<system>-full.zip     + the continuity add-on, example
                                             profiles and tools/check_profile.py
-Each holds install_bgcache.py (drag into Maya), README.txt and module/
+Each holds DRAG_ME_INTO_MAYA.py (drag into Maya), README.txt and module/
 (module/scripts/bgcache, module/icons). The code is the same in all three
 systems' zips; each picks its own bgcache/system/ file when it runs. Never
 includes studio_private/ or a profile.json.
@@ -21,6 +21,7 @@ import zipfile
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SYSTEMS = {"windows": "Windows", "macos": "macOS", "linux": "Linux"}
+DRAG_NAME = "DRAG_ME_INTO_MAYA.py"      # b5: the one file to drag (was install_bgcache.py)
 SKIP = shutil.ignore_patterns("__pycache__", "*.pyc", "profile.json")
 
 
@@ -34,7 +35,7 @@ def stage(root, full, system_name):
     skip = SKIP if full else shutil.ignore_patterns("__pycache__", "*.pyc", "profile.json", "continuity")
     shutil.copytree(os.path.join(REPO, "bgcache"), os.path.join(module, "scripts", "bgcache"), ignore=skip)
     shutil.copytree(os.path.join(REPO, "bgcache", "icons"), os.path.join(module, "icons"))
-    shutil.copy2(os.path.join(REPO, "tools", "dragdrop", "install_bgcache.py"), root)
+    shutil.copy2(os.path.join(REPO, "tools", "dragdrop", "install_bgcache.py"), os.path.join(root, DRAG_NAME))
     readme = open(os.path.join(REPO, "tools", "dragdrop", "README.txt")).read()
     edition = "Full (with the continuity add-on)" if full else "Simple (playback and drawing)"
     head = "bgcache %s for %s, %s\n\n" % (version(), SYSTEMS[system_name], edition)

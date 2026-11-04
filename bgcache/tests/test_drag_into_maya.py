@@ -124,3 +124,28 @@ res = subprocess.run([sys.executable, os.path.join(folder, "install_bgcache.py")
 assert "Rolled back from 0.7.5 to 0.8.0b7. Restart Maya." in res.stdout, res.stdout + res.stderr
 print("ok: ./install --list, --version and --rollback work on the same installs")
 shutil.rmtree(root, ignore_errors=True)
+
+# b5: the studio install folder shows one file to drag; the terminal install sits in for_pipeline/
+if os.path.isfile(os.path.join(REPO, "tools", "build_studio.py")):     # not in the public copy
+    import tempfile as _t, shutil as _s
+    sys.path.insert(0, os.path.join(REPO, "tools"))
+    import build_studio as _bs
+    _out = _t.mkdtemp()
+    _rel = os.path.join(_out, "bgcache_0.9.0b5.zip")
+    import zipfile as _z
+    with _z.ZipFile(_rel, "w") as _zz:
+        _zz.writestr("bgcache/__init__.py", '__version__ = "0.9.0b5"\n')
+    _f = _bs.install_folder(_out, _rel)
+    assert sorted(os.listdir(_f)) == ["DRAG_ME_INTO_MAYA.py", "README.txt", "for_pipeline", "releases"], os.listdir(_f)
+    assert sorted(os.listdir(os.path.join(_f, "for_pipeline"))) == ["install", "install_bgcache.py"]
+    _res = subprocess.run([sys.executable, os.path.join(_f, "for_pipeline", "install_bgcache.py"), "--list"],
+                          capture_output=True, text=True, env=dict(os.environ, HOME=_out))
+    assert "0.9.0b5" in _res.stdout, _res.stdout + _res.stderr
+    import importlib.util
+    _spec = importlib.util.spec_from_file_location("dd5", os.path.join(_f, "DRAG_ME_INTO_MAYA.py"))
+    _dd = importlib.util.module_from_spec(_spec); _spec.loader.exec_module(_dd)
+    assert _dd._cli().RELEASES == os.path.join(_f, "releases")
+    assert "DRAG_ME_INTO_MAYA.py" in open(os.path.join(_f, "README.txt")).read()
+    print("ok: the install folder shows one file to drag (DRAG_ME_INTO_MAYA.py); the terminal install is in for_pipeline/ "
+          "and finds releases/ one level up")
+    _s.rmtree(_out, ignore_errors=True)

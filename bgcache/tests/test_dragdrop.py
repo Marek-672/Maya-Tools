@@ -43,7 +43,7 @@ def staged(full):
     return root
 
 def load_installer(root):
-    spec = importlib.util.spec_from_file_location("install_bgcache", os.path.join(root, "install_bgcache.py"))
+    spec = importlib.util.spec_from_file_location("DRAG_ME_INTO_MAYA", os.path.join(root, "DRAG_ME_INTO_MAYA.py"))
     mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod); return mod
 
 version = build_release.version()
@@ -94,9 +94,9 @@ running.running = False
 print("ok: won't update while bgcache is running (Stop first)")
 
 # ---- dropping the file again runs it afresh (Maya 2022+ caches dropped modules)
-sys.modules["install_bgcache"] = inst
+sys.modules["DRAG_ME_INTO_MAYA"] = inst
 inst._forget_self()
-assert "install_bgcache" not in sys.modules
+assert "DRAG_ME_INTO_MAYA" not in sys.modules
 print("ok: the installer forgets its cached copy, so a second drop runs the new file")
 
 # ---- uninstall
@@ -113,7 +113,8 @@ assert len(made) == 6
 for path in made:
     names = zipfile.ZipFile(path).namelist()
     top = os.path.basename(path)[:-4]
-    assert top + "/install_bgcache.py" in names and top + "/README.txt" in names
+    assert top + "/DRAG_ME_INTO_MAYA.py" in names and top + "/README.txt" in names
+    assert not any(n.endswith("install_bgcache.py") for n in names)      # b5: one file to drag
     assert top + "/module/scripts/bgcache/system/windows.py" in names and top + "/module/scripts/bgcache/system/macos.py" in names
     assert not any("studio_private" in n or n.endswith("profile.json") or "__pycache__" in n for n in names)
     has_cont = any("/scripts/bgcache/continuity/" in n for n in names)

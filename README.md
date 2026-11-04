@@ -14,7 +14,7 @@ Free and open source (MIT). Website: [mkanimtools.com](https://mkanimtools.com)
 ## Download
 
 Get the latest BGCache from [Releases](https://github.com/Marek-672/Maya-Tools/releases):
-pick the zip for your system, unzip it, drag `install_bgcache.py` into a Maya
+pick the zip for your system, unzip it, drag `DRAG_ME_INTO_MAYA.py` into a Maya
 viewport and choose **Install**. Maya 2024 or later, on Windows, macOS or
 Linux. More in [bgcache/README.md](bgcache/README.md).
 

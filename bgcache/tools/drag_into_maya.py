@@ -31,7 +31,10 @@ def _forget_self():
 
 def _cli():
     """install_bgcache.py from this folder: the same code ./install runs."""
-    spec = importlib.util.spec_from_file_location("bgcache_cli_installer", os.path.join(HERE, "install_bgcache.py"))
+    engine = os.path.join(HERE, "for_pipeline", "install_bgcache.py")      # b5 layout
+    if not os.path.isfile(engine):
+        engine = os.path.join(HERE, "install_bgcache.py")
+    spec = importlib.util.spec_from_file_location("bgcache_cli_installer", engine)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -208,7 +211,7 @@ def run(quiet=False, choice=None, version=None):
     target = os.path.join(root, "scripts", NAME)
     found = cli.releases()
     if not found:
-        message = "No builds found in %s. This file must stay in the install_bgcache folder, next to releases/." % cli.RELEASES
+        message = "No builds found in %s. This file must stay in its folder, next to releases/." % cli.RELEASES
         _tell(message, quiet)
         return message
     versions = sorted(found, key=cli.version_key)

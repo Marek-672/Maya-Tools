@@ -8,7 +8,7 @@ Nothing in the studio setup is changed. The only "intrusion" is that the backgro
 
 ## Install
 
-Drag `install_bgcache.py` (in the download for your system) into a Maya viewport and choose **Install**. It installs bgcache as a Maya module in your own Maya folder, for every Maya from 2024 up, and adds a bgcache button to your shelf. It works straight away, no restart. Drag it in again to **Update** (press Stop in the player first; no restart needed; your old copy is kept) or **Uninstall**. Studios can also use the `install_bgcache` folder (`./install`, `drag_into_maya.py`) that keeps every build for rolling back.
+Drag **`DRAG_ME_INTO_MAYA.py`** (in the download for your system; the only file to use) into a Maya viewport and choose **Install**. It installs bgcache as a Maya module in your own Maya folder, for every Maya from 2024 up, and adds a bgcache button to your shelf. It works straight away, no restart. Drag it in again to **Update** (press Stop in the player first; no restart needed; your old copy is kept) or **Uninstall**. Studios can also use the `install_bgcache` folder (`./install`, `drag_into_maya.py`) that keeps every build for rolling back.
 
 ## Use
 

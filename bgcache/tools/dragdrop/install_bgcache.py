@@ -17,9 +17,10 @@ shelf button). An older copy in <version>/scripts/bgcache (from the Linux
 command-line installer) would hide the new one, so it is moved to that
 scripts folder's .bgcache_backups as well.
 
-Without dialogs (e.g. from a script):
-    import install_bgcache; install_bgcache.install(quiet=True)
-    install_bgcache.uninstall(quiet=True)
+In the downloads this file is called DRAG_ME_INTO_MAYA.py. Without dialogs
+(e.g. from a script), with its folder on sys.path:
+    import DRAG_ME_INTO_MAYA as i; i.install(quiet=True)
+    i.uninstall(quiet=True)
 """
 import os
 import re
