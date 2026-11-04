@@ -47,9 +47,9 @@ nav { display: flex; gap: 2px; flex-wrap: wrap; }
 nav a { color: var(--ink); text-decoration: none; font-size: var(--step--1); padding: 6px 10px; border-radius: 3px; }
 nav a:hover { background: var(--panel-2); color: var(--orange); }
 nav { align-items: center; }
-nav a.coffee { display: inline-flex; align-items: center; gap: 6px; margin-left: 6px; border: 1px solid var(--orange); color: var(--orange); font-weight: 600; }
+nav a.coffee { display: inline-flex; align-items: center; gap: 6px; margin-left: 6px; border: 1px solid var(--orange); background: var(--orange); color: #1a1006; font-weight: 600; }
 nav a.coffee svg { width: 16px; height: 16px; }
-nav a.coffee:hover { background: var(--orange); color: #1a1006; }
+nav a.coffee:hover { background: #f4a466; color: #1a1006; }
 
 /* hero */
 .hero { position: relative; padding-block: 64px 48px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 48px; align-items: center; }
@@ -183,6 +183,22 @@ code { font: 400 0.9em/1.4 var(--mono); background: #2a2d30; border: 1px solid v
 .btn[aria-disabled="true"] { opacity: 0.6; pointer-events: none; }
 @media (max-width: 760px) { .support { grid-template-columns: 1fr; padding: 22px; } }
 
+.btn svg { width: 20px; height: 20px; flex: none; }
+.btn.cup { border-color: var(--orange); color: var(--orange); }
+.btn.cup:hover { background: rgba(232,145,74,.12); }
+.btn.big { font-size: 1.15rem; padding: 16px 24px; }
+.band { margin-block: 8px 40px; display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr); gap: 36px; align-items: center; padding: 36px; border: 1px solid var(--orange-deep); border-radius: 12px; background: radial-gradient(90% 120% at 0% 50%, rgba(232,145,74,.22), transparent 65%), var(--panel); }
+.band h2 { margin-top: 8px; }
+.band p { color: var(--ink); margin: 0 0 16px; max-width: 52ch; font-size: var(--step-1); line-height: 1.5; }
+.goes { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.goes li { font: 500 var(--step--1)/1 var(--mono); padding: 8px 10px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); background: var(--ground); }
+.mug { position: relative; width: 100%; max-width: 200px; justify-self: center; padding-top: 40px; }
+.mug svg { width: 100%; height: auto; display: block; filter: drop-shadow(0 12px 24px rgba(232,145,74,.35)); }
+.steam { position: absolute; top: 0; width: 8px; height: 46px; border-radius: 8px; background: linear-gradient(to top, rgba(238,235,230,.5), transparent); animation: steam 3s ease-in-out infinite; }
+.steam.s1 { left: 26%; } .steam.s2 { left: 40%; animation-delay: .8s; } .steam.s3 { left: 54%; animation-delay: 1.6s; }
+@keyframes steam { 0% { transform: translateY(14px) scaleY(.6); opacity: 0; } 40% { opacity: .9; } 100% { transform: translateY(-10px) scaleY(1); opacity: 0; } }
+@media (max-width: 700px) { .band { grid-template-columns: 1fr; padding: 24px; gap: 16px; } .mug { max-width: 130px; } }
+.footlinks a { color: var(--orange); }
 footer { border-top: 1px solid var(--line); padding-block: 28px 40px; color: var(--muted); font-size: var(--step--1); margin-top: 24px; }
 footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 
@@ -203,9 +219,9 @@ footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wr
       <a href="#install">Install</a>
       <a href="#tools">Tools</a>
       <a href="https://github.com/Marek-672/Maya-Tools">GitHub</a>
-      <a class="coffee" id="donate-top" href="#support">
+      <a class="coffee" data-donate href="https://ko-fi.com/marekkochout">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M4 9h13v4a6 6 0 0 1-6 6H10a6 6 0 0 1-6-6V9Zm13 1h1.5a2.5 2.5 0 0 1 0 5H16.5M8 3.5c0 1 1 1.5 1 2.5M12 3.5c0 1 1 1.5 1 2.5"/></svg>
-        <span id="donate-top-label">Support</span>
+        <span>Buy me a coffee</span>
       </a>
     </nav>
   </div>
@@ -221,7 +237,7 @@ footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wr
         <a class="btn primary" href="https://github.com/Marek-672/Maya-Tools/releases">Download BGCache</a>
         <a class="btn" href="https://github.com/Marek-672/Maya-Tools/blob/main/bgcache/bgcache/README.md">Read the guide</a>
       </div>
-      <p class="note" style="margin-top:14px">Windows · macOS · Linux · MIT licence</p>
+      <p class="note" style="margin-top:14px">Free, and it stays free. Windows · macOS · Linux · MIT licence</p>
     </div>
     <div class="player" id="bgcache">
       <img src="img/player.png" width="1280" height="760" alt="The BGCache player: a toolbar with bgcache, View and Help menus, Camera, Draw, Refresh, Reload scene, Re-render all and Pause; a cached frame of a bouncing ball between blocks; the cache bar and playback buttons below.">
@@ -323,6 +339,27 @@ footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wr
     </div>
   </section>
 
+  <div class="wrap">
+    <div class="band" id="coffee">
+      <div class="mug" aria-hidden="true">
+        <span class="steam s1"></span><span class="steam s2"></span><span class="steam s3"></span>
+        <svg viewBox="0 0 120 100"><path d="M14 30h76v26a34 34 0 0 1-34 34H48a34 34 0 0 1-34-34V30Z" fill="var(--orange)"/><path d="M90 38h8a14 14 0 0 1 0 28h-10" fill="none" stroke="var(--orange)" stroke-width="8" stroke-linecap="round"/><rect x="22" y="36" width="60" height="5" rx="2.5" fill="#1a1006" opacity=".25"/></svg>
+      </div>
+      <div class="bandtext">
+        <span class="eyebrow">Free tools, made in my own time</span>
+        <h2>Like it? Buy me a coffee.</h2>
+        <p>BGCache is free and always will be. If it saves you a few playblasts a day, a coffee is a lovely way to say thanks, and it goes straight back into the tools.</p>
+        <ul class="goes" aria-label="What a coffee goes toward">
+          <li>Bug fixes and updates</li><li>Features you ask for</li><li>Shot Transfer</li><li>Reference Editor</li>
+        </ul>
+        <div class="cta" style="margin-top:22px">
+          <a class="btn primary big" data-donate href="https://ko-fi.com/marekkochout"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M4 9h13v4a6 6 0 0 1-6 6H10a6 6 0 0 1-6-6V9Zm13 1h1.5a2.5 2.5 0 0 1 0 5H16.5M8 3.5c0 1 1 1.5 1 2.5M12 3.5c0 1 1 1.5 1 2.5"/></svg>Buy me a coffee</a>
+          <span class="note">on Ko-fi</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <section id="editions">
     <div class="wrap">
       <div class="ruler" aria-hidden="true"><b style="left:0">80</b><b class="key" style="left:120px">90</b><b style="left:240px">100</b><b style="left:360px">110</b></div>
@@ -391,13 +428,13 @@ footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wr
     <div class="wrap">
       <div class="support">
         <div>
-          <h2>Support the tools</h2>
-          <p class="sub" style="margin:0">The tools are free and stay free. If they save you time and you'd like to say thanks, a donation helps me keep making them. Bug reports and ideas help just as much.</p>
+          <h2>Keep the tools coming</h2>
+          <p class="sub" style="margin:0">Every coffee helps me fix bugs faster and build the next tools. Bug reports and ideas help just as much: tell me what breaks and what you wish it did.</p>
         </div>
         <div class="box">
-          <a class="btn give" id="donate" href="#support" aria-disabled="true">
+          <a class="btn primary big" data-donate href="https://ko-fi.com/marekkochout">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M4 9h13v4a6 6 0 0 1-6 6H10a6 6 0 0 1-6-6V9Zm13 1h1.5a2.5 2.5 0 0 1 0 5H16.5M8 3.5c0 1 1 1.5 1 2.5M12 3.5c0 1 1 1.5 1 2.5"/></svg>
-            <span id="donate-label">Donations open soon</span>
+            <span>Buy me a coffee</span>
           </a>
           <a class="btn" href="https://github.com/Marek-672/Maya-Tools/issues/new/choose">Report a problem or idea</a>
           <span class="note">Please leave anything from a studio production out of reports.</span>
@@ -419,13 +456,8 @@ footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wr
   // empty until you have one: the button then says "Donations open soon".
   var DONATE_URL = "https://ko-fi.com/marekkochout";
   var DONATE_LABEL = "Buy me a coffee";
-  if (DONATE_URL) {
-    var b = document.getElementById("donate");
-    b.href = DONATE_URL; b.removeAttribute("aria-disabled");
-    document.getElementById("donate-label").textContent = DONATE_LABEL;
-    document.getElementById("donate-top").href = DONATE_URL;
-    document.getElementById("donate-top-label").textContent = DONATE_LABEL;
-  }
+  // Every "Buy me a coffee" link carries data-donate; this sets them all.
+  document.querySelectorAll("[data-donate]").forEach(function (a) { a.href = DONATE_URL; });
 
   // Cache bar demo: a key edit on frame 17 makes frames 9-41 stale;
   // they re-cache from the frame you're on outward, while the playhead keeps playing.
