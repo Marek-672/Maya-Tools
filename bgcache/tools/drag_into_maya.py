@@ -161,8 +161,10 @@ def _has_shelf_button():
         top = mel.eval("$bgcacheTmp = $gShelfTopLevel")
         for tab in cmds.tabLayout(top, query=True, childArray=True) or []:
             for button in cmds.shelfLayout(tab, query=True, childArray=True) or []:
-                if cmds.objectTypeUI(button) == "shelfButton" and \
-                        NAME in (cmds.shelfButton(button, query=True, command=True) or ""):
+                if cmds.objectTypeUI(button) != "shelfButton":
+                    continue
+                command = cmds.shelfButton(button, query=True, command=True)
+                if isinstance(command, str) and NAME in command:      # studio buttons can hold a function (b7)
                     return True
     except Exception:
         pass
@@ -267,15 +269,14 @@ def run(quiet=False, choice=None, version=None):
     _scripts_on_path(scripts)
     _retire_loaded_bgcache(close_panel=True)   # b12: no Maya panel any more, all in the player
     _forget_loaded_bgcache()
-    shelf_note = None
-    if not _has_shelf_button():
-        try:
-            import bgcache.install
-            shelf_note = "Shelf button added to shelf %r." % bgcache.install.shelf()
-        except Exception as error:
-            shelf_note = "Add the shelf button by running:  import bgcache.install; bgcache.install.shelf()  (%s)" % error
+    try:                                  # b7: always on its own "bgcache" shelf tab
+        import bgcache.install
+        shelf_note = "The bgcache button is on the %r shelf tab." % bgcache.install.shelf("bgcache")
+    except Exception as error:
+        shelf_note = ("The shelf button couldn't be made (%s). In the Script Editor (Python) run:\n"
+                      "    import bgcache.install; bgcache.install.shelf(\"bgcache\")" % error)
     lines = ["bgcache %s is installed for Maya %s%s." % (new, maya_version, (" (was %s)" % old) if old else ""),
-             "No restart needed: click the bgcache shelf button to start (the player opens)."]
+             "No restart needed: click the bgcache button to start (the player opens)."]
     if shelf_note:
         lines.append(shelf_note)
     lines.append("")

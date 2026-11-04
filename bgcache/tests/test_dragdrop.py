@@ -9,14 +9,21 @@ import build_release
 # ---- a fake Maya: user folder somewhere unusual (like E:/Users/.../Documents/maya)
 user = os.path.join(tempfile.mkdtemp(), "Other Drive", "Documents", "maya")
 os.makedirs(os.path.join(user, "2027", "prefs"))
-shelves = {"Animation": [], "Custom": []}
-buttons, dialogs = {}, []
+import functools
+shelves = {"Animation": ["studio1"], "Custom": []}
+# b7: a studio button whose command is a Python function, not text (it stopped the 0.9.0b6 install)
+buttons, dialogs = {"studio1": {"command": functools.partial(print, "studio tool"), "tab": "Animation"}}, []
 maya = types.ModuleType("maya"); cmds = types.ModuleType("maya.cmds"); mel = types.ModuleType("maya.mel")
 cmds.internalVar = lambda userAppDir=False, userPrefDir=False: (user + "/") if userAppDir else os.path.join(user, "2027", "prefs") + "/"
 def confirmDialog(**k):
     dialogs.append(k); return k.get("defaultButton")
 cmds.confirmDialog = confirmDialog
-cmds.tabLayout = lambda top, query=True, selectTab=False, childArray=False: "Animation" if selectTab else list(shelves)
+selected = ["Animation"]
+def tabLayout(top, query=False, edit=False, selectTab=False, childArray=False):
+    if edit:
+        selected[0] = selectTab; return
+    return selected[0] if selectTab else list(shelves)
+cmds.tabLayout = tabLayout
 def shelfLayout(tab, query=False, childArray=False, exists=False):
     return tab in shelves if exists else list(shelves.get(tab, []))
 cmds.shelfLayout = shelfLayout
@@ -32,7 +39,10 @@ cmds.shelfButton = shelfButton
 def deleteUI(b):
     shelves[buttons[b]["tab"]].remove(b); del buttons[b]
 cmds.deleteUI = deleteUI
-mel.eval = lambda s: None
+def mel_eval(s):
+    if s.startswith("addNewShelfTab"):
+        shelves[s.split('"')[1]] = []
+mel.eval = mel_eval
 maya.cmds, maya.mel = cmds, mel
 sys.modules.update({"maya": maya, "maya.cmds": cmds, "maya.mel": mel})
 
@@ -58,9 +68,12 @@ assert os.path.isfile(os.path.join(target, "icons", "bgcache.png"))
 assert open(os.path.join(modules, "bgcache.mod")).read() == "+ bgcache %s bgcache\n" % version
 import bgcache
 assert os.path.dirname(bgcache.__file__) == os.path.join(target, "scripts", "bgcache"), bgcache.__file__
-assert len(buttons) == 1 and buttons["btn1"]["tab"] == "Animation" and "bgcache.controller" in buttons["btn1"]["command"]
+ours = [b for b in buttons if b != "studio1"]
+assert len(ours) == 1 and buttons[ours[0]]["tab"] == "bgcache" and "bgcache.controller" in buttons[ours[0]]["command"], buttons
+assert selected[0] == "bgcache" and "'bgcache' shelf tab" in report, report
 assert not dialogs
 print("ok: installs into Maya's own user folder (any drive): modules/bgcache + bgcache.mod, usable at once, one shelf button")
+print("ok: b7: the button gets its own 'bgcache' shelf tab (shown), even with a studio button holding a Python function")
 
 # ---- update: old copy kept, still one button, a studio profile.json carried over
 open(os.path.join(target, "scripts", "bgcache", "profile.json"), "w").write('{"shot_folder": "/studio/{shot}"}')
@@ -72,7 +85,7 @@ backups = os.listdir(os.path.join(modules, ".bgcache_backups"))
 assert len(backups) == 1 and backups[0].startswith("bgcache_%s_" % version)
 assert open(os.path.join(target, "scripts", "bgcache", "profile.json")).read() == '{"shot_folder": "/studio/{shot}"}'
 assert not os.path.exists(stale) and os.listdir(os.path.join(user, "2027", "scripts", ".bgcache_backups"))[0].startswith("bgcache_0.7.5_")
-assert len(buttons) == 1
+assert len(buttons) == 2      # the studio button and ours
 assert "kept" in report and "would hide the new one" in report
 print("ok: update keeps the old copy for rollback, keeps a studio profile.json, moves an old scripts/bgcache aside, no second button")
 
@@ -101,7 +114,7 @@ print("ok: the installer forgets its cached copy, so a second drop runs the new 
 
 # ---- uninstall
 report = inst.uninstall(quiet=True)
-assert not os.path.exists(target) and not os.path.exists(os.path.join(modules, "bgcache.mod")) and not buttons
+assert not os.path.exists(target) and not os.path.exists(os.path.join(modules, "bgcache.mod")) and list(buttons) == ["studio1"]      # the studio button is left alone
 assert os.path.isdir(os.path.join(modules, ".bgcache_backups"))
 assert not any(m == "bgcache" or m.startswith("bgcache.") for m in sys.modules)
 print("ok: uninstall removes the module, the .mod file and the shelf button; backups stay")

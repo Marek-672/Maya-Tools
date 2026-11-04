@@ -451,7 +451,7 @@ class Controller(RefreshMixin, GpuRescueMixin, EditsMixin, SyncMixin, RefPlaneMi
         cmd = base + ["-command", WORKER_COMMAND]
         log = open(common.paths(self.session)["log"], "a")
         self.worker_proc = subprocess.Popen(cmd, env=self._worker_env(), stdout=log,
-                                            stderr=subprocess.STDOUT)
+                                            stderr=subprocess.STDOUT, **common.hidden_console())
 
     def launch_player(self):
         """Player as its own mayapy process if possible (never stutters);

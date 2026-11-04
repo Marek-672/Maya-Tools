@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.9.0 beta 7
+
+- **Fixed: no shelf button after installing** for some people: a shelf
+  button made by another tool (holding Python code rather than text) stopped
+  the installer before it made bgcache's. The button now goes on its own
+  **bgcache** shelf tab (an existing bgcache button is updated where it is).
+- **Fixed (Linux and macOS): Maya froze at "Loading scene"** when it was
+  started from a terminal in the background (`maya &`): the second Maya and
+  the player are now started apart from the terminal, so it can't pause them.
+
 ## 0.9.0 beta 6
 
 - **Go back to an earlier version:** if a new version misbehaves, Help > Check

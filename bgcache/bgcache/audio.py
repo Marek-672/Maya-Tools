@@ -11,6 +11,7 @@ No Maya imports. The player restarts the sound on every play, scrub and loop,
 so small drifts never accumulate.
 """
 import array
+import os
 import shutil
 import struct
 import subprocess
@@ -413,8 +414,9 @@ class _PipeBackend(object):
 
     def play(self, offset):
         self.stop()
+        detach = {"start_new_session": True} if os.name != "nt" else {}   # never paused by a terminal (b7)
         self.proc = subprocess.Popen(self.cmd, stdin=subprocess.PIPE,
-                                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, **detach)
         flag = self.stop_flag = threading.Event()
         proc, data = self.proc, self.pcm   # captured now: play_data swaps self.pcm back
 

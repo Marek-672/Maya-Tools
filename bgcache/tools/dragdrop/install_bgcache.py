@@ -247,15 +247,16 @@ def install(quiet=False, shelf=True):
     _forget_loaded_bgcache(scripts)
     where = None
     if shelf:
-        try:
+        try:                              # b7: always on its own "bgcache" shelf tab
             import bgcache.install
-            where = bgcache.install.shelf()
+            where = bgcache.install.shelf("bgcache")
         except Exception as error:
-            report.append("Shelf button not added (%s): run  import bgcache.install; bgcache.install.shelf()" % error)
+            report.append("The shelf button couldn't be made (%s). In the Script Editor (Python) run:\n"
+                          "    import bgcache.install; bgcache.install.shelf(\"bgcache\")" % error)
     lines = ["bgcache %s installed in %s" % (new, p["target"]),
              "Ready to use now, no restart needed."]
     if where:
-        lines.append("Shelf button on shelf %r: click it to start (the player opens)." % where)
+        lines.append("The bgcache button is on the %r shelf tab: click it to start (the player opens)." % where)
     message = "\n".join(lines + report)
     _tell(message, quiet)
     return message

@@ -2,9 +2,9 @@
 
     import bgcache.install; bgcache.install.shelf()
 
-Copies the icons into your Maya prefs and adds a bgcache button to the current
-shelf tab (or the tab you name). Run it again any time: it updates the existing
-button instead of adding a second one.
+Copies the icons into your Maya prefs and puts a bgcache button on its own
+"bgcache" shelf tab, made if needed. Run it again any time: it updates the
+button (wherever it is) instead of adding a second one.
 """
 import os
 import shutil
@@ -50,31 +50,54 @@ def _bgcache_buttons():
                     continue
             except RuntimeError:
                 continue
-            if "bgcache.controller" in (cmds.shelfButton(button, query=True, command=True) or ""):
+            if "bgcache.controller" in _command_text(button):
                 out.append((tab, button))
     return out
 
 
-def shelf(tab=None):
-    """Add the bgcache button to the current shelf tab (or `tab`), or update
-    the one that's already on any shelf."""
+def _command_text(button):
+    """A shelf button's command as text, or "". Studio buttons can hold a
+    Python function instead of text (a functools.partial): those aren't ours,
+    and searching them stopped the install before the button was made
+    (0.9.0b6, fixed in b7)."""
+    try:
+        command = cmds.shelfButton(button, query=True, command=True)
+    except Exception:          # a button Maya can't read back: not ours
+        return ""
+    return command if isinstance(command, str) else ""
+
+
+SHELF_TAB = "bgcache"     # 0.9.0b7: the button's own shelf tab (never a studio's shelf)
+
+
+def shelf(tab=SHELF_TAB):
+    """Make the bgcache button, or update it. Returns the shelf tab it's on.
+
+    A bgcache button already on any shelf is updated where it is (no second
+    button). Otherwise one is added to its own shelf tab, `tab` ("bgcache",
+    made if needed; tab=None: the shelf that's open), never mixed in with a
+    studio's shelf."""
     image = _copy_icons()
     top = mel.eval("$bgcacheTop = $gShelfTopLevel")
     existing = _bgcache_buttons()
-    if existing and tab is None:
+    flags = dict(image=image, label="bgcache", annotation=TIP, imageOverlayLabel="", command=COMMAND,
+                 sourceType="python")
+    if existing:
         for where, button in existing:
-            _button(dict(edit=True, image=image, label="bgcache", annotation=TIP,
-                         imageOverlayLabel="", command=COMMAND, sourceType="python"), button)
-            print("bgcache: updated the existing button on shelf %r" % where)
-        mel.eval("saveAllShelves $gShelfTopLevel")
-        return existing[0][0]
-    if tab is None:
-        tab = cmds.tabLayout(top, query=True, selectTab=True)
-    elif not cmds.shelfLayout(tab, exists=True):
-        mel.eval('addNewShelfTab "%s"' % tab)
-    _button(dict(parent=tab, image=image, label="bgcache", annotation=TIP,
-                 imageOverlayLabel="", command=COMMAND, sourceType="python"))
-    print("bgcache: added a button to shelf %r" % tab)
+            _button(dict(flags, edit=True), button)
+            print("bgcache: updated the button on shelf %r" % where)
+        tab = existing[0][0]
+    else:
+        if tab is None:
+            tab = cmds.tabLayout(top, query=True, selectTab=True)
+        elif not cmds.shelfLayout(tab, exists=True):
+            mel.eval('addNewShelfTab "%s"' % tab)
+        _button(dict(flags, parent=tab))
+        print("bgcache: added a button to shelf %r" % tab)
+    try:
+        cmds.tabLayout(top, edit=True, selectTab=tab)      # show it: that's where to click
+    except RuntimeError as error:
+        print("bgcache: shelf %r not brought to the front (%s)" % (tab, error))
     mel.eval("saveAllShelves $gShelfTopLevel")
     return tab
 

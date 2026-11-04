@@ -34,8 +34,11 @@ with mock.patch.dict(os.environ, {"MAYA_LOCATION": ""}), mock.patch.object(sys, 
      mock.patch.object(windows, "on_path", lambda names: [None for _ in names]):
     assert windows.find_maya() == maya_exe and windows.find_mayapy() == mayapy_exe
 print("ok: Windows: bin/maya.exe and bin/mayapy.exe from MAYA_LOCATION, else next to the running maya.exe")
-assert windows.hidden_console() == {"creationflags": 0x08000000} and linux.hidden_console() == {}
-print("ok: Windows starts console programs (mayapy, ffmpeg) with CREATE_NO_WINDOW; Linux/macOS unchanged")
+import subprocess
+assert windows.hidden_console() == {"creationflags": 0x08000000}
+assert linux.hidden_console() == {"stdin": subprocess.DEVNULL, "start_new_session": True}
+print("ok: Windows starts console programs (mayapy, ffmpeg) with CREATE_NO_WINDOW; Linux/macOS start them "
+      "in their own session without the terminal (b7: never paused with a Maya started as studiomaya &)")
 if sys.platform != "win32":
     assert windows.pid_alive(12345) is True      # no Windows API here: can't tell -> never closes anything
 else:

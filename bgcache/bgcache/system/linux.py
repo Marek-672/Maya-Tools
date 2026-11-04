@@ -1,5 +1,6 @@
 """Linux: bgcache's original behaviour (the studio's), unchanged."""
 import os
+import subprocess
 import sys
 
 from bgcache.system._shared import first, maya_location, on_path
@@ -49,7 +50,11 @@ def pid_alive(pid):
 
 
 def hidden_console():
-    return {}
+    """No terminal for the programs bgcache starts (0.9.0b7). Started from a
+    terminal as a background job (studiomaya &), a child that touched the
+    terminal got the whole job paused ("Suspended (tty output)"), the
+    artist's Maya too. Their own session and no stdin: never paused."""
+    return {"stdin": subprocess.DEVNULL, "start_new_session": True}
 
 
 def retrying(fn):
