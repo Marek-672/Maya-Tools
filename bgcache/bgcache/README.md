@@ -93,15 +93,18 @@ import bgcache.controller as bgc; bgc.shelf_click(refresh_background_prefs=True)
 
 Opening a file, File > New or quitting Maya stops bgcache automatically, before the old scene is cleared, and closes the background Maya and the player. Click Start again in the new scene.
 
-## Versions and rolling back
+## Updating and going back
 
-Every release is archived as `releases/bgcache_<version>.zip` in the shared install folder. With Maya closed:
+**Help > Check for updates** looks for a newer bgcache only when you click it, and shows the answer in the Help menu: **Update to ... and restart** installs it in the same Maya (bgcache restarts, Maya doesn't).
 
-- `install --list` shows the archived versions and the one you have.
-- `install --version 0.6.2` installs that exact version.
-- `install --rollback` puts back what you had before your last install.
+If a new version misbehaves, the same answer lists **Go back to an earlier version ▸** (since 0.9.0b6): each earlier version you can return to, with where it comes from:
+- **on this computer**: every update and every drag-and-drop install keeps the copy it replaced (in a `.bgcache_backups` folder next to the install), so these work offline;
+- **releases folder** (studio builds): any older build in the studio's releases folder;
+- **GitHub** (public builds): older releases, downloaded when you pick one.
 
-`CHANGELOG.md` (with the source) lists what changed in each version.
+Going back installs that version the way an update does, and keeps the one you leave, so Check for updates can bring it back later.
+
+Studio install folder, from a terminal (Maya closed), in `for_pipeline/`: `install --list` shows every build and the one you have, `install --version 0.9.0b5` installs that exact one, `install --rollback` puts back what you had before your last install. Dragging `DRAG_ME_INTO_MAYA.py` offers the same (**Other version...**, **Roll back**). `CHANGELOG.md` lists what changed in each version.
 
 ## Logs and crash hunting
 

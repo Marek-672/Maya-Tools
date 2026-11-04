@@ -1,6 +1,7 @@
 **BGCache 0.9.0 beta 6.** Live playback for heavy Maya shots, while you keep animating. Maya 2024 or later.
 
 ### New
+- **Go back to an earlier version:** if a new version misbehaves, **Help > Check for updates** now lists **Go back to an earlier version**, with each version you can return to: the copies kept on your computer (every update keeps the one it replaced) and older releases here on GitHub. The version you leave is kept, so you can come back.
 - **Installing is one obvious step:** unzip, then drag **`DRAG_ME_INTO_MAYA.py`** into a Maya viewport and choose **Install**. It's the only file to touch (it used to be called `install_bgcache.py`).
 
 Also in here, from beta 5: more footage formats in continuity (AVI, MKV, MXF, WebM...; EXR and DPX through ffmpeg). And from beta 4: the Full edition with **Set up continuity**, focus range playback, and **Help > Report a problem > Send**.

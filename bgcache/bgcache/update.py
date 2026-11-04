@@ -144,6 +144,79 @@ def _package_in(folder):
     return None
 
 
+# ------------------------------------------------- going back (0.9.0b6)
+def _backup_folders(install_dir):
+    """The .bgcache_backups folders an install keeps old copies in: next to
+    the bgcache folder (updates from the player, the studio installer) and,
+    for a module install, in Maya's modules folder (the drag-and-drop)."""
+    out, folder = [], os.path.abspath(install_dir or "")
+    for _ in range(3):
+        backups = os.path.join(folder, ".bgcache_backups")
+        if os.path.isdir(backups):
+            out.append(backups)
+        folder = os.path.dirname(folder)
+    return out
+
+
+def _package_of_backup(path):
+    for candidate in (path, os.path.join(path, "bgcache"), os.path.join(path, "scripts", "bgcache")):
+        if os.path.isfile(os.path.join(candidate, "controller.py")):
+            return candidate
+    return None
+
+
+def earlier_versions(install_dir, current, releases_folder=None):
+    """Versions older than `current` that can be put back without going
+    online, newest first: [{version, where, path (a backup folder) or zip,
+    saved (time)}]. A version both kept on this computer and in the
+    releases folder is listed once (the copy on this computer)."""
+    found = {}
+    for backups in _backup_folders(install_dir):
+        for name in os.listdir(backups):
+            package = _package_of_backup(os.path.join(backups, name))
+            version = _version_of(package) if package else "unknown"
+            if version == "unknown" or version_key(version) >= version_key(current):
+                continue
+            saved = os.path.getmtime(os.path.join(backups, name))
+            if version not in found or saved > found[version].get("saved", 0):
+                found[version] = {"version": version, "where": "on this computer", "path": package,
+                                  "saved": saved}
+    for version, path in releases(releases_folder).items():
+        if version not in found and version_key(version) < version_key(current):
+            found[version] = {"version": version, "where": "releases folder", "zip": path}
+    return sorted(found.values(), key=lambda v: version_key(v["version"]), reverse=True)
+
+
+def earlier_on_github(repo, current, system_name, edition, timeout=8.0):
+    """Older published releases on GitHub with a download for this system
+    and edition, newest first: [{version, where, zip_url, zip_name, notes}].
+    Raises RuntimeError (plain) when GitHub can't be reached."""
+    out = []
+    for release in github_releases(repo, timeout):
+        if version_key(release["version"]) >= version_key(current):
+            continue
+        name = "bgcache-%s-%s-%s.zip" % (release["version"], system_name, edition)
+        if release["assets"].get(name):
+            out.append({"version": release["version"], "where": "GitHub", "zip_url": release["assets"][name],
+                        "zip_name": name, "notes": release["notes"]})
+    return out
+
+
+def zip_backup(package, dest_folder):
+    """A kept copy as a release zip (bgcache/ at the top), so going back
+    installs the same way as updating (and keeps the copy you leave)."""
+    os.makedirs(dest_folder, exist_ok=True)
+    path = os.path.join(dest_folder, "bgcache_%s_kept.zip" % _version_of(package))
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as archive:
+        for folder, dirs, files in os.walk(package):
+            dirs[:] = [d for d in dirs if d != "__pycache__"]
+            for name in files:
+                if not name.endswith(".pyc"):
+                    full = os.path.join(folder, name)
+                    archive.write(full, os.path.join("bgcache", os.path.relpath(full, package)))
+    return path
+
+
 # ---------------------------------------------------------------- GitHub
 TAG_PREFIX = "bgcache-v"
 

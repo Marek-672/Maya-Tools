@@ -627,14 +627,29 @@ class Player(_continuity_part(), QtWidgets.QWidget):
         if not source:
             return None
         from bgcache import update
+        install_dir = self.cfg.get("install_dir") or ""
         if source == "folder":
-            self._update_checked(update.check_folder(self.cfg["releases_folder"], __version__))
+            result = update.check_folder(self.cfg["releases_folder"], __version__)
+            result["earlier"] = update.earlier_versions(install_dir, __version__, self.cfg["releases_folder"])
+            self._update_checked(result)
             return self._update_result
         from bgcache import system
         edition = "full" if self.has_continuity else "simple"
         self._show_update_lines([("Checking for updates...", None)])
-        self._run_in_background(lambda: update.check_github(self.cfg["github_releases"], __version__,
-                                                            system.NAME, edition), self._update_checked)
+        repo = self.cfg["github_releases"]
+
+        def work():
+            result = update.check_github(repo, __version__, system.NAME, edition)
+            earlier = update.earlier_versions(install_dir, __version__)
+            try:
+                kept = {v["version"] for v in earlier}
+                earlier += [v for v in update.earlier_on_github(repo, __version__, system.NAME, edition)
+                            if v["version"] not in kept]
+            except RuntimeError:
+                pass                      # offline: the copies on this computer are still listed
+            result["earlier"] = sorted(earlier, key=lambda v: update.version_key(v["version"]), reverse=True)
+            return result
+        self._run_in_background(work, self._update_checked)
         return None
 
     def _run_in_background(self, work, done):
@@ -673,6 +688,10 @@ class Player(_continuity_part(), QtWidgets.QWidget):
             lines = [("Couldn't check: %s" % result.get("message", "unknown error"), None)]
             if result.get("page"):
                 lines.append(("Open the download page", lambda: self._open_url(result["page"])))
+        earlier = result.get("earlier") or []
+        if earlier:                       # b6: going back, if a new version misbehaves
+            lines.append(("Go back to an earlier version", [
+                ("%s  (%s)" % (v["version"], v["where"]), lambda v=v: self.go_back_to(v)) for v in earlier[:12]]))
         self._show_update_lines(lines)
         QtCore.QTimer.singleShot(0, self.b_help.showMenu)     # show the answer where you asked
 
@@ -682,11 +701,18 @@ class Player(_continuity_part(), QtWidgets.QWidget):
             self.help_menu.removeAction(act)
         self._update_lines = []
         for text, slot in lines:
-            act = _QAction("    " + text, self.help_menu)
-            if slot is None:
-                act.setEnabled(False)
+            if isinstance(slot, list):        # a submenu: [(text, slot)]
+                sub = QtWidgets.QMenu("    " + text, self.help_menu)
+                for sub_text, sub_slot in slot:
+                    sub.addAction(sub_text, sub_slot)
+                act = sub.menuAction()
+                self._update_submenus = getattr(self, "_update_submenus", []) + [sub]
             else:
-                act.triggered.connect(lambda checked=False, fn=slot: fn())
+                act = _QAction("    " + text, self.help_menu)
+                if slot is None:
+                    act.setEnabled(False)
+                else:
+                    act.triggered.connect(lambda checked=False, fn=slot: fn())
             self.help_menu.insertAction(self._update_sep, act)
             self._update_lines.append(act)
 
@@ -755,6 +781,34 @@ class Player(_continuity_part(), QtWidgets.QWidget):
                                 lambda got: self._send_update(result["version"], got.get("path"))
                                 if got.get("state") == "ok" else
                                 self._flash_message("Update didn't download: %s" % got.get("message"), 8.0))
+
+    def go_back_to(self, item):
+        """b6: Help > Check for updates > Go back to an earlier version: put
+        that version back the way an update installs (the copy you leave is
+        kept, so Check for updates can bring it back)."""
+        box = QtWidgets.QMessageBox(self)
+        box.setWindowTitle("bgcache")
+        box.setText("Go back to bgcache %s?" % item["version"])
+        box.setInformativeText("You have %s. It's kept, and Check for updates can bring it back. "
+                               "bgcache restarts; your Maya doesn't." % __version__)
+        go = box.addButton("Go back to %s" % item["version"], QtWidgets.QMessageBox.AcceptRole)
+        box.addButton("Cancel", QtWidgets.QMessageBox.RejectRole)
+        (getattr(box, "exec", None) or box.exec_)()
+        if box.clickedButton() is not go:
+            return False
+        from bgcache import update
+        folder = self.p.get("tmp") or os.path.join(self.session, "tmp")
+        if item.get("path"):                   # a copy kept on this computer
+            self._send_update(item["version"], update.zip_backup(item["path"], folder))
+        elif item.get("zip"):                  # the studio's releases folder
+            self._send_update(item["version"], item["zip"])
+        else:                                  # GitHub
+            self._flash_message("Downloading bgcache %s..." % item["version"], 30.0)
+            self._run_in_background(
+                lambda: {"state": "ok", "path": update.download(item["zip_url"], folder, item["zip_name"])},
+                lambda got: self._send_update(item["version"], got.get("path")) if got.get("state") == "ok"
+                else self._flash_message("Didn't download: %s" % got.get("message"), 8.0))
+        return True
 
     def _send_update(self, version, path):
         self.send_cmd("update", path=path)

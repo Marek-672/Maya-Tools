@@ -2,6 +2,9 @@
 
 ## 0.9.0 beta 6
 
+- **Go back to an earlier version:** if a new version misbehaves, Help > Check
+  for updates lists the earlier versions you can return to (kept on your
+  computer, or from GitHub). The version you leave is kept too.
 - **Install: one file to drag.** In the download, drag `DRAG_ME_INTO_MAYA.py`
   into Maya (it used to be called install_bgcache.py). Nothing else changes.
 
