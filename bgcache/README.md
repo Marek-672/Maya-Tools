@@ -1,6 +1,6 @@
 # BGCache
 
-**Live playback for heavy Maya shots, while you keep animating.** Part of MK Anim Tools.
+**Live playback for heavy Maya shots, while you keep animating.** Part of [MK Anim Tools](https://mkanimtools.com).
 
 ![The BGCache player](docs/player.png)
 

@@ -1,7 +1,7 @@
 # MK Anim Tools
 
 Maya tools made by an animator for animators: less waiting, more animating.
-Free and open source (MIT).
+Free and open source (MIT). Website: [mkanimtools.com](https://mkanimtools.com)
 
 | Tool | What it does | Status |
 |---|---|---|
