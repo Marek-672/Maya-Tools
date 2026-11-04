@@ -166,12 +166,15 @@ p { max-width: 65ch; }
 @media (max-width: 760px) { .stages { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 420px) { .stages { grid-template-columns: 1fr; } }
 .dlhead { font: 600 var(--step--1)/1 var(--mono); color: var(--ink); text-transform: uppercase; letter-spacing: .06em; margin-top: 8px; }
+.btn.os { cursor: pointer; }
+.btn.go { justify-content: center; font-size: 1.1rem; padding: 15px 20px; }
+.btn.go svg { width: 20px; height: 20px; }
 .dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; }
 .dl .btn.os { justify-content: center; padding-inline: 8px; justify-self: stretch; }
 .dl .btn.os svg { width: 18px; height: 18px; }
 .btn.os { padding: 10px 14px; font-size: var(--step--1); justify-self: start; }
 .tool .btn.os { margin-top: 4px; }
-.btn.os.mine { background: var(--orange); border-color: var(--orange); color: #1a1006; }
+.btn.os.mine { background: rgba(232,145,74,.14); border: 2px solid var(--orange); color: var(--orange); }
 .ghcards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
 .tool.gh { grid-template-rows: auto auto 1fr auto; }
 .tool.gh .btn.os { margin-top: 6px; justify-self: start; }
@@ -373,13 +376,14 @@ footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wr
             <li>Drawing over playback, Blue Pencil export</li>
             <li>Focus range, Refresh, Pause, Self-test</li>
           </ul>
-          <span class="dlhead">Download Simple for</span>
-          <div class="dl" data-edition="simple">
-            <a class="btn os" data-os="windows" href="https://github.com/Marek-672/Maya-Tools/releases" aria-label="Download for Windows"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19h14"/></svg>Windows</a>
-            <a class="btn os" data-os="macos" href="https://github.com/Marek-672/Maya-Tools/releases" aria-label="Download for macOS"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19h14"/></svg>macOS</a>
-            <a class="btn os" data-os="linux" href="https://github.com/Marek-672/Maya-Tools/releases" aria-label="Download for Linux"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19h14"/></svg>Linux</a>
+          <span class="dlhead" id="sys-simple">Your system</span>
+          <div class="dl" data-edition="simple" role="radiogroup" aria-labelledby="sys-simple">
+            <button type="button" class="btn os" role="radio" aria-checked="false" data-os="windows">Windows</button>
+            <button type="button" class="btn os" role="radio" aria-checked="false" data-os="macos">macOS</button>
+            <button type="button" class="btn os" role="radio" aria-checked="false" data-os="linux">Linux</button>
           </div>
-          <p class="note ver">Downloads a .zip · newest beta</p>
+          <a class="btn primary go" data-edition="simple" href="https://github.com/Marek-672/Maya-Tools/releases"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19h14"/></svg><span class="golabel">Download Simple</span></a>
+          <p class="note ver">A .zip file · newest beta</p>
         </div>
         <div class="edition full">
           <span class="status beta">Full</span>
@@ -390,13 +394,14 @@ footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wr
             <li>Follows the cut from an EDL or XML; works for teams</li>
             <li>Movies need ffmpeg: if it's missing, one click downloads it</li>
           </ul>
-          <span class="dlhead">Download Full for</span>
-          <div class="dl" data-edition="full">
-            <a class="btn os" data-os="windows" href="https://github.com/Marek-672/Maya-Tools/releases" aria-label="Download for Windows"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19h14"/></svg>Windows</a>
-            <a class="btn os" data-os="macos" href="https://github.com/Marek-672/Maya-Tools/releases" aria-label="Download for macOS"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19h14"/></svg>macOS</a>
-            <a class="btn os" data-os="linux" href="https://github.com/Marek-672/Maya-Tools/releases" aria-label="Download for Linux"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19h14"/></svg>Linux</a>
+          <span class="dlhead" id="sys-full">Your system</span>
+          <div class="dl" data-edition="full" role="radiogroup" aria-labelledby="sys-full">
+            <button type="button" class="btn os" role="radio" aria-checked="false" data-os="windows">Windows</button>
+            <button type="button" class="btn os" role="radio" aria-checked="false" data-os="macos">macOS</button>
+            <button type="button" class="btn os" role="radio" aria-checked="false" data-os="linux">Linux</button>
           </div>
-          <p class="note ver">Downloads a .zip · newest beta</p>
+          <a class="btn primary go" data-edition="full" href="https://github.com/Marek-672/Maya-Tools/releases"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19h14"/></svg><span class="golabel">Download Full</span></a>
+          <p class="note ver">A .zip file · newest beta</p>
         </div>
       </div>
 
@@ -482,23 +487,41 @@ footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wr
   // Every "Buy me a coffee" link carries data-donate; this sets them all.
   document.querySelectorAll("[data-donate]").forEach(function (a) { a.href = DONATE_URL; });
 
-  // Download buttons: point each at the newest BGCache release's zip. If GitHub can't be
-  // reached they keep linking to the Releases page.
+  // Downloads: in each card the system buttons only choose (your own system starts chosen);
+  // the big Download button under them is the only one that downloads. It points at the
+  // newest BGCache release's zip, or at the Releases page if GitHub can't be reached.
   (function () {
-    var ua = navigator.userAgent, mine = /Win/.test(ua) ? "windows" : /Mac/.test(ua) ? "macos" : /Linux/.test(ua) ? "linux" : "";
-    if (mine) document.querySelectorAll('.btn.os[data-os="' + mine + '"]').forEach(function (b) { b.classList.add("mine"); });
+    var NAMES = { windows: "Windows", macos: "macOS", linux: "Linux" };
+    var ua = navigator.userAgent, mine = /Win/.test(ua) ? "windows" : /Mac/.test(ua) ? "macos" : /Linux/.test(ua) ? "linux" : "windows";
+    var urls = {};   // "full-windows" -> zip address, once known
+    function choose(box, os) {
+      var ed = box.getAttribute("data-edition"), card = box.parentNode;
+      box.querySelectorAll(".btn.os").forEach(function (o) {
+        var on = o.getAttribute("data-os") === os;
+        o.classList.toggle("mine", on); o.setAttribute("aria-checked", on ? "true" : "false");
+      });
+      var go = card.querySelector(".go");
+      go.querySelector(".golabel").textContent = "Download " + (ed === "full" ? "Full" : "Simple") + " for " + NAMES[os];
+      if (urls[ed + "-" + os]) go.href = urls[ed + "-" + os];
+      box.setAttribute("data-os", os);
+    }
+    document.querySelectorAll(".dl").forEach(function (box) {
+      choose(box, mine);
+      box.querySelectorAll(".btn.os").forEach(function (b) {
+        b.addEventListener("click", function () { choose(box, b.getAttribute("data-os")); });
+      });
+    });
     fetch("https://api.github.com/repos/Marek-672/Maya-Tools/releases?per_page=10").then(function (r) { return r.ok ? r.json() : []; }).then(function (list) {
       var rel = list.filter(function (x) { return !x.draft && /^bgcache-v/.test(x.tag_name); })[0];
       if (!rel) return;
       var v = rel.tag_name.replace("bgcache-v", "").replace(/b(\d+)$/, " beta $1");
+      rel.assets.forEach(function (a) {
+        var m = a.name.match(/-(windows|macos|linux)-(simple|full)\.zip$/);
+        if (m) urls[m[2] + "-" + m[1]] = a.browser_download_url;
+      });
       document.querySelectorAll(".dl").forEach(function (box) {
-        var ed = box.getAttribute("data-edition");
-        box.querySelectorAll(".btn.os").forEach(function (b) {
-          var want = "-" + b.getAttribute("data-os") + "-" + ed + ".zip";
-          var a = rel.assets.filter(function (x) { return x.name.slice(-want.length) === want; })[0];
-          if (a) b.href = a.browser_download_url;
-        });
-        var ver = box.parentNode.querySelector(".ver"); if (ver) ver.textContent = "Downloads a .zip · version " + v;
+        choose(box, box.getAttribute("data-os"));
+        var ver = box.parentNode.querySelector(".ver"); if (ver) ver.textContent = "A .zip file · version " + v;
       });
     }).catch(function () {});
   })();
