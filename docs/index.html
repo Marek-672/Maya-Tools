@@ -165,9 +165,17 @@ p { max-width: 65ch; }
 .stages span { color: var(--muted); }
 @media (max-width: 760px) { .stages { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 420px) { .stages { grid-template-columns: 1fr; } }
-.dl { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
-.btn.os { padding: 10px 14px; font-size: var(--step--1); }
+.dlhead { font: 600 var(--step--1)/1 var(--mono); color: var(--ink); text-transform: uppercase; letter-spacing: .06em; margin-top: 8px; }
+.dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; }
+.dl .btn.os { justify-content: center; padding-inline: 8px; justify-self: stretch; }
+.dl .btn.os svg { width: 18px; height: 18px; }
+.btn.os { padding: 10px 14px; font-size: var(--step--1); justify-self: start; }
+.tool .btn.os { margin-top: 4px; }
 .btn.os.mine { background: var(--orange); border-color: var(--orange); color: #1a1006; }
+.ghcards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.tool.gh { grid-template-rows: auto auto 1fr auto; }
+.tool.gh .btn.os { margin-top: 6px; justify-self: start; }
+.btn.os svg { width: 16px; height: 16px; }
 .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
 .facts > div { background: var(--panel); padding: 16px 18px; }
 .facts dt { font: 500 var(--step--1)/1.2 var(--mono); color: var(--orange); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
@@ -229,10 +237,9 @@ footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wr
     <nav aria-label="Sections">
       <a href="#how">How it works</a>
       <a href="#features">Features</a>
-      <a href="#editions">Editions</a>
-      <a href="#install">Install</a>
+      <a href="#download">Download</a>
       <a href="#tools">Tools</a>
-      <a href="https://github.com/Marek-672/Maya-Tools">GitHub</a>
+      <a href="#github">GitHub</a>
       <a class="coffee" data-donate href="https://ko-fi.com/marekkochout">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M4 9h13v4a6 6 0 0 1-6 6H10a6 6 0 0 1-6-6V9Zm13 1h1.5a2.5 2.5 0 0 1 0 5H16.5M8 3.5c0 1 1 1.5 1 2.5M12 3.5c0 1 1 1.5 1 2.5"/></svg>
         <span>Buy me a coffee</span>
@@ -248,10 +255,10 @@ footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wr
       <h1><span class="line">Edit a key.</span><span class="line hot">Watch it play.</span></h1>
       <p class="lede">Heavy rigs can't play in real time, so you playblast again and again. BGCache does it for you in the background: a hidden second Maya re-playblasts <em>only the frames your edit changed</em>, the one you're on first, and a player plays the shot at full speed with sound while you keep animating.</p>
       <div class="cta">
-        <a class="btn primary" href="https://github.com/Marek-672/Maya-Tools/releases">Download BGCache</a>
+        <a class="btn primary" href="#download">Download BGCache<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 5v14m0 0-6-6m6 6 6-6"/></svg></a>
         <a class="btn" href="https://github.com/Marek-672/Maya-Tools/blob/main/bgcache/bgcache/README.md">Read the guide</a>
       </div>
-      <p class="note" style="margin-top:14px">Free, and it stays free. Windows · macOS · Linux · MIT licence</p>
+      <p class="note" style="margin-top:14px">Free, and it stays free. Never saves your scene. Windows · macOS · Linux</p>
     </div>
     <div class="player" id="bgcache">
       <img src="img/player.png" width="1280" height="760" alt="The BGCache player: a toolbar with bgcache, View and Help menus, Camera, Draw, Refresh, Reload scene, Re-render all and Pause; a cached frame of a bouncing ball between blocks; the cache bar and playback buttons below.">
@@ -259,14 +266,6 @@ footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wr
         <div class="cells" id="cells"><div class="playhead" id="playhead"></div></div>
         <div class="cacheinfo"><span>Key edit on frame <b>17</b></span><span id="cachecount">Up to date</span></div>
       </div>
-    </div>
-  </div>
-
-  <div class="wrap">
-    <div class="stats">
-      <div><strong>Faster</strong><span>than playblasting the whole shot again after every edit</span></div>
-      <div><strong>Only</strong><span>the frames your edit changed get re-cached, the one you're on first</span></div>
-      <div><strong>0</strong><span>times your scene file is saved or changed</span></div>
     </div>
   </div>
 
@@ -360,11 +359,11 @@ footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wr
     </div>
   </section>
 
-  <section id="editions">
+  <section id="download">
     <div class="wrap">
       <div class="ruler" aria-hidden="true"><b style="left:0">80</b><b class="key" style="left:120px">90</b><b style="left:240px">100</b><b style="left:360px">110</b></div>
-      <h2>Two editions, both free</h2>
-      <p class="sub">Not sure? Take Full: it does everything Simple does, and continuity stays off until you set it up. You can also move from Simple to Full later by dragging in the Full installer.</p>
+      <h2>Download BGCache</h2>
+      <p class="sub">Two editions, both free. Not sure? Take Full: it does everything Simple does, and continuity stays off until you set it up. You can move from Simple to Full later by dragging in the Full installer.</p>
       <div class="editions">
         <div class="edition">
           <span class="status simple">Simple</span>
@@ -374,12 +373,13 @@ footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wr
             <li>Drawing over playback, Blue Pencil export</li>
             <li>Focus range, Refresh, Pause, Self-test</li>
           </ul>
+          <span class="dlhead">Download Simple for</span>
           <div class="dl" data-edition="simple">
-            <a class="btn os" data-os="windows" href="https://github.com/Marek-672/Maya-Tools/releases">Windows</a>
-            <a class="btn os" data-os="macos" href="https://github.com/Marek-672/Maya-Tools/releases">macOS</a>
-            <a class="btn os" data-os="linux" href="https://github.com/Marek-672/Maya-Tools/releases">Linux</a>
+            <a class="btn os" data-os="windows" href="https://github.com/Marek-672/Maya-Tools/releases" aria-label="Download for Windows"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19h14"/></svg>Windows</a>
+            <a class="btn os" data-os="macos" href="https://github.com/Marek-672/Maya-Tools/releases" aria-label="Download for macOS"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19h14"/></svg>macOS</a>
+            <a class="btn os" data-os="linux" href="https://github.com/Marek-672/Maya-Tools/releases" aria-label="Download for Linux"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19h14"/></svg>Linux</a>
           </div>
-          <p class="note"><span class="ver">Newest beta</span> · then drag <code>DRAG_ME_INTO_MAYA.py</code> into Maya. <a href="#install">Install steps</a></p>
+          <p class="note ver">Downloads a .zip · newest beta</p>
         </div>
         <div class="edition full">
           <span class="status beta">Full</span>
@@ -390,34 +390,30 @@ footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wr
             <li>Follows the cut from an EDL or XML; works for teams</li>
             <li>Movies need ffmpeg: if it's missing, one click downloads it</li>
           </ul>
+          <span class="dlhead">Download Full for</span>
           <div class="dl" data-edition="full">
-            <a class="btn os" data-os="windows" href="https://github.com/Marek-672/Maya-Tools/releases">Windows</a>
-            <a class="btn os" data-os="macos" href="https://github.com/Marek-672/Maya-Tools/releases">macOS</a>
-            <a class="btn os" data-os="linux" href="https://github.com/Marek-672/Maya-Tools/releases">Linux</a>
+            <a class="btn os" data-os="windows" href="https://github.com/Marek-672/Maya-Tools/releases" aria-label="Download for Windows"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19h14"/></svg>Windows</a>
+            <a class="btn os" data-os="macos" href="https://github.com/Marek-672/Maya-Tools/releases" aria-label="Download for macOS"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19h14"/></svg>macOS</a>
+            <a class="btn os" data-os="linux" href="https://github.com/Marek-672/Maya-Tools/releases" aria-label="Download for Linux"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19h14"/></svg>Linux</a>
           </div>
-          <p class="note"><span class="ver">Newest beta</span> · then drag <code>DRAG_ME_INTO_MAYA.py</code> into Maya. <a href="#install">Install steps</a></p>
+          <p class="note ver">Downloads a .zip · newest beta</p>
         </div>
       </div>
-    </div>
-  </section>
 
-  <section id="install">
-    <div class="wrap">
-      <div class="ruler" aria-hidden="true"><b style="left:0">120</b><b style="left:120px">130</b><b class="key" style="left:240px">140</b><b style="left:360px">150</b></div>
-      <h2>Install in a minute</h2>
-      <p class="sub">It installs as a Maya module in your own Maya folder and never edits <code>userSetup.py</code> or <code>Maya.env</code>.</p>
+      <h3 class="striphead" id="install">Then install it in a minute</h3>
       <ol class="install">
-        <li>Download the zip for your system from <a href="https://github.com/Marek-672/Maya-Tools/releases">Releases</a>, Simple or Full, and unzip it.</li>
-        <li>Drag <code>DRAG_ME_INTO_MAYA.py</code> (the only file to use) into a Maya viewport and choose <b>Install</b>. No restart needed.</li>
+        <li>Unzip the file you downloaded.</li>
+        <li>Drag <code>DRAG_ME_INTO_MAYA.py</code> into a Maya viewport and choose <b>Install</b>. No restart needed.</li>
         <li>Click the new <b>bgcache</b> shelf button. Pick a camera and it starts caching. Full edition: click <b>Continuity</b> and show it one movie of your shot.</li>
       </ol>
-      <p class="note" style="margin-top:20px">To update, drag the new version's installer in the same way (your old copy is kept). The same installer also uninstalls.</p>
+      <p class="note" style="margin-top:20px">It installs as a Maya module in your own Maya folder and never edits <code>userSetup.py</code> or <code>Maya.env</code>. To update, drag the new version's file in the same way (your old copy is kept); the same file also uninstalls.</p>
       <div class="facts" style="margin-top:24px">
         <div><dl><dt>Maya</dt><dd>2024 and later (tested on 2024, 2025 and 2027)</dd></dl></div>
         <div><dl><dt>Systems</dt><dd>Windows, Linux, macOS (Apple Silicon; the least tested so far)</dd></dl></div>
         <div><dl><dt>Memory</dt><dd>Enough for a second Maya with your scene open</dd></dl></div>
         <div><dl><dt>Licence seats</dt><dd>On network licences, ask your IT whether the hidden Maya takes a seat</dd></dl></div>
       </div>
+      <p class="note" style="margin-top:20px">All versions and release notes are on <a href="https://github.com/Marek-672/Maya-Tools/releases">GitHub</a>.</p>
     </div>
   </section>
 
@@ -442,13 +438,27 @@ footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wr
     </div>
   </div>
 
+  <section id="github">
+    <div class="wrap">
+      <div class="ruler" aria-hidden="true"><b style="left:0">160</b><b class="key" style="left:120px">170</b><b style="left:240px">180</b><b style="left:360px">190</b></div>
+      <h2>Open source, on GitHub</h2>
+      <p class="sub">You don't need GitHub to use BGCache. It's where BGCache is made, and where you can help shape it.</p>
+      <div class="ghcards">
+        <div class="tool gh"><span class="num">For everyone</span><h3>Report a problem or idea</h3><p>Tell me what breaks and what you wish it did. In the player, Help &gt; Report a problem &gt; Send works too.</p><a class="btn os" href="https://github.com/Marek-672/Maya-Tools/issues/new/choose">Report on GitHub<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M14 5h5v5M19 5l-8 8M10 6H6a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-4"/></svg></a></div>
+        <div class="tool gh"><span class="num">What's new</span><h3>Release notes</h3><p>The changes in every version, and older versions if you ever need to go back.</p><a class="btn os" href="https://github.com/Marek-672/Maya-Tools/releases">Release notes<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M14 5h5v5M19 5l-8 8M10 6H6a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-4"/></svg></a></div>
+        <div class="tool gh"><span class="num">Stay up to date</span><h3>Get new versions</h3><p>On the project page, click <b>Watch</b> &gt; <b>Custom</b> &gt; <b>Releases</b>. GitHub emails you when a new version comes out.</p><a class="btn os" href="https://github.com/Marek-672/Maya-Tools">Watch on GitHub<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M14 5h5v5M19 5l-8 8M10 6H6a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-4"/></svg></a></div>
+        <div class="tool gh"><span class="num">For studios and TDs</span><h3>Check it and set it up</h3><p>Read the code before you allow it, install it for a whole team, MIT licence.</p><a class="btn os" href="https://github.com/Marek-672/Maya-Tools/blob/main/bgcache/PIPELINE_SETUP.md">Pipeline setup<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M14 5h5v5M19 5l-8 8M10 6H6a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-4"/></svg></a></div>
+      </div>
+    </div>
+  </section>
+
   <section id="tools">
     <div class="wrap">
-      <div class="ruler" aria-hidden="true"><b style="left:0">160</b><b style="left:120px">170</b><b style="left:240px">180</b><b class="key" style="left:360px">190</b></div>
+      <div class="ruler" aria-hidden="true"><b style="left:0">200</b><b style="left:120px">210</b><b style="left:240px">220</b><b class="key" style="left:360px">230</b></div>
       <h2>More tools on the way</h2>
       <p class="sub">The same idea behind each one: less waiting, more animating.</p>
       <div class="tools">
-        <div class="tool live"><span class="status beta">Beta · download</span><h3>BGCache</h3><p>Live playback for heavy shots, with drawing over playback. The Full edition adds continuity: the shots around yours as one reel.</p></div>
+        <div class="tool live"><span class="status beta">Beta</span><h3>BGCache</h3><p>Live playback for heavy shots, with drawing over playback. The Full edition adds continuity: the shots around yours as one reel.</p><a class="btn os" href="#download">Download BGCache</a></div>
         <div class="tool"><span class="status">Coming soon</span><h3>Shot Transfer</h3><p>Copy animation and constraints, prop attach setups too, from another shot's file into yours: one frame or the whole range, without opening that file.</p></div>
         <div class="tool"><span class="status">Coming soon</span><h3>Reference Editor</h3><p>Bring your video reference into your shot. It finds the takes in your reference file automatically. Pick and trim the ones you want, then place them in Maya: on the shot camera, in front of or behind your character, or as free planes in the scene.</p></div>
       </div>
@@ -488,7 +498,7 @@ footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wr
           var a = rel.assets.filter(function (x) { return x.name.slice(-want.length) === want; })[0];
           if (a) b.href = a.browser_download_url;
         });
-        var ver = box.parentNode.querySelector(".ver"); if (ver) ver.textContent = "Version " + v;
+        var ver = box.parentNode.querySelector(".ver"); if (ver) ver.textContent = "Downloads a .zip · version " + v;
       });
     }).catch(function () {});
   })();
