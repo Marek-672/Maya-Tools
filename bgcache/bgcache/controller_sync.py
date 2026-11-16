@@ -3,6 +3,7 @@ maya_time.json), the player's buttons that need your Maya (player_cmd.json),
 Push selected and Re-render all.
 
 Part of the Controller (bgcache/controller.py); see DEVELOPER.md."""
+import os
 import time
 
 import maya.cmds as cmds
@@ -43,12 +44,80 @@ class SyncMixin(object):
         except (IOError, OSError):
             pass
 
+    # ---------------------------------------------------------------- range sync (b8)
+    def _on_range_changed(self):
+        """Your playback range changed: tell the player (it shows it, and
+        with Sync its focus follows). Frames past the shot it knows are added
+        (animating outside the cut)."""
+        if not self.running:
+            return
+        try:
+            now = scene.playback_range()
+        except Exception as error:     # Maya busy or closing: the next change sends it
+            scene._ignored(error)
+            return
+        self.trace("range", "%d-%d" % tuple(now))
+        # b11: the shot as laid out is the cut plus your range: it grows when
+        # your range goes past the cut, and goes back when you close it again
+        cut = self.cfg.get("cut") or [self.cfg["start"], self.cfg["end"]]
+        want = [min(int(cut[0]), now[0]), max(int(cut[1]), now[1])]
+        if want != [self.cfg["start"], self.cfg["end"]]:
+            self._grow(want[0], want[1])
+        self._write_maya_range(now)
+
+    def _write_maya_range(self, now):
+        self.cfg["maya_range"] = list(now)
+        try:
+            common.write_json_atomic(common.paths(self.session)["maya_range"],
+                                     {"range": list(now), "ts": time.time()})
+        except (IOError, OSError) as error:
+            scene._ignored(error)
+
+    def _grow(self, first, last):
+        """The shot as laid out is now first-last (your range went past the
+        cut, or came back): the hidden Maya renders new frames when they're
+        in focus, the player lays it out again."""
+        print("bgcache: the shot is now %d-%d (was %d-%d)"
+              % (first, last, self.cfg["start"], self.cfg["end"]))
+        self.cfg.update({"start": int(first), "end": int(last), "rev": int(self.cfg.get("rev", 1)) + 1})
+        common.write_json_atomic(common.paths(self.session)["config"], self.cfg)
+        common.post_message(self.session, {"op": "grow", "start": int(first), "end": int(last)})
+
+    def _follow_player_focus(self):
+        """With Sync on, the player's focus range (I / O, its handles) is your
+        playback range; clearing it opens your range to the whole shot."""
+        path = common.paths(self.session)["cameras"]
+        try:
+            mtime = os.path.getmtime(path)
+        except OSError:
+            return
+        if mtime == getattr(self, "_cameras_mtime", None):
+            return
+        self._cameras_mtime = mtime
+        want = common.read_json(path) or {}
+        self._watch_cameras(want.get("checked"))      # b12: cameras you move without keys
+        if "focus" not in want or not self.sync_enabled or want.get("focus_from") == "maya":
+            return           # b8: "maya": the player followed your range; nothing to send back
+        focus = want.get("focus") or [self.cfg["start"], self.cfg["end"]]
+        a, b = int(focus[0]), int(focus[1])
+        if [a, b] == scene.playback_range():
+            return
+        self.trace("range-from-player", "%d-%d" % (a, b))
+        if a < cmds.playbackOptions(query=True, animationStartTime=True):
+            cmds.playbackOptions(animationStartTime=a)
+        if b > cmds.playbackOptions(query=True, animationEndTime=True):
+            cmds.playbackOptions(animationEndTime=b)
+        cmds.playbackOptions(minTime=a, maxTime=b)
+        self._write_maya_range([a, b])
+
     def _poll_player_time(self):
         """The player scrubbed, stepped or paused: move Maya there. Also runs
         one-off player commands (step key, image plane), with or without Sync."""
         if not self.running:
             return
         self._poll_player_cmd()
+        self._follow_player_focus()
+        self._send_moved_cameras()
         st = common.read_json(common.paths(self.session)["player_time"])
         if st and st.get("ts", 0) > self._player_ts:
             self._player_ts = st["ts"]
@@ -94,7 +163,9 @@ class SyncMixin(object):
                 common.write_json_atomic(common.paths(self.session)["maya_time"],
                                          {"frame": frame, "ts": time.time(), "force": True})
             elif cmd == "image_plane":
-                self.show_image_plane(st["camera"], st["path"], int(st["offset"]), st["mode"])
+                self.show_image_plane(st["camera"], st["path"], int(st["offset"]), st["mode"], st.get("alpha"))
+            elif cmd == "image_plane_alpha":
+                self.set_image_plane_alpha(st.get("alpha", 1.0))
             elif cmd == "image_plane_remove":
                 self.remove_image_plane()
             elif cmd == "refresh":

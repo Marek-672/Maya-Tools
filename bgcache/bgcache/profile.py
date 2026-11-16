@@ -138,6 +138,12 @@ DEFAULT = {
     # {project} in the team's paths (P:/FILM on Windows, /Volumes/FILM on a Mac).
     "team_settings": "",
     "project_folder": "",
+    # 0.9.0b8, the shot's real length (its cut) from the studio's launcher:
+    # {"start": env var, "end": env var, "shot": env var naming the shot the
+    # launcher set them for}. Used only while that shot's name is in the
+    # scene's path (so a scene of another shot opened in the same Maya
+    # doesn't get the wrong length). Empty: Maya's outer range is the shot.
+    "shot_range_env": {},
     "reports_url": "https://script.google.com/macros/s/AKfycbxvqrA4Uwsksy4NeuO1zhbzazfk0KgRdL62mumHj9aZ39GCbVAaBL2X_GNUxHNkDbA9/exec",
     "reports_folder": "",
 }

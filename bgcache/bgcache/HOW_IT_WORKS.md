@@ -44,6 +44,8 @@ All three run on the same machine as the same user. The hidden Maya and the play
 | `cameras.json` | player | hidden Maya | Which cameras to cache, which one you're viewing, and the focus range (the frames to cache now) | When you change them |
 | `player_time.json` | player | your Maya, checked every 150 ms | The player's current frame (Sync) | While you play, scrub or step |
 | `maya_time.json` | your Maya | player | Your Maya's current frame, plus "bring the player to the front" | When your time changes (at most 4 times a second while your Maya plays, then the frame it stops on) |
+| `maya_range.json` | your Maya | player | Your playback range (0.9.0b8): shown on the player's bar; with Sync on it is the player's focus. The other way, with Sync on, the player's focus (in `cameras.json`) sets your playback range | When your range changes |
+| `player_close.json` (+ `.answer`) | your Maya | player | Stop, opening another scene or quitting Maya (0.9.0b8): the player asks to save unsaved drawings, answers "asking" then "closing", and closes; your Maya waits for that | When bgcache stops from your Maya |
 | `player_cmd.json` (+ `.done`) | player | your Maya, checked every 150 ms; it writes `.done` back | Buttons that need your Maya: Refresh, Reload scene, Re-render all, Push selected, next/previous key, Stop, Restart, Self-test, Update | When you press them |
 
 The hidden Maya checks its inbox every 50 ms (every 100 ms after 2 s with nothing to do). Its whole loop runs in Maya's idle time: read messages, apply them, playblast the next batch, write the status.

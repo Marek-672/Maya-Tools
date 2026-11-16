@@ -6,6 +6,8 @@ Session folder layout:
     config.json   written by the controller at start (incl. camera list, sound)
     cameras.json  written by the player: which cameras to cache, which one is viewed
     player_time.json / maya_time.json   current frame, for player <-> Maya time sync
+    maya_range.json   your playback range (0.9.0b8: the player's focus follows it with Sync)
+    player_close.json your Maya asks the player to close (it asks to save drawings first)
     status.json   written by the worker (per camera: dirty frames, versions; state)
     inbox/        controller -> worker messages, one JSON file each
     frames/<cam>/ finished frames per camera, f.<frame>.jpg
@@ -111,6 +113,8 @@ def paths(session):
         "player_time": os.path.join(session, "player_time.json"),
         "player_cmd": os.path.join(session, "player_cmd.json"),
         "maya_time": os.path.join(session, "maya_time.json"),
+        "maya_range": os.path.join(session, "maya_range.json"),       # b8: your playback range
+        "player_close": os.path.join(session, "player_close.json"),   # b8: your Maya asks the player to close
         "status": os.path.join(session, "status.json"),
         "logs": log_dir(session),
         "log": os.path.join(log_dir(session), "worker.log"),

@@ -15,7 +15,7 @@ class Dummy(object):
 def qtmod(name):
     m = mock.MagicMock(); m.__name__ = name; return m
 QtCore, QtGui, QtWidgets = qtmod("QtCore"), qtmod("QtGui"), qtmod("QtWidgets")
-for n in ("QWidget", "QFrame", "QLayout"): setattr(QtWidgets, n, Dummy)
+for n in ("QWidget", "QFrame", "QLayout", "QSpinBox"): setattr(QtWidgets, n, Dummy)
 class DummyLabel(Dummy):
     def setText(self, text): self._text = text
     def text(self): return getattr(self, "_text", "")
@@ -82,8 +82,14 @@ def _defs(path, classes=None):
                     out.add(x.attr)
     return out
 _pkg = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "bgcache")
-_addon_only = _defs(os.path.join(_pkg, "continuity", "ui.py")) - _defs(os.path.join(_pkg, "player.py"))
-for _f, _pat in (("player.py", r"self\.(\w+)"), ("drawui.py", r"\.player\.(\w+)")):
-    _used = set(_re.findall(_pat, open(os.path.join(_pkg, _f)).read()))
+import glob as _glob
+_player_files = [os.path.join(_pkg, "player.py")] + sorted(_glob.glob(os.path.join(_pkg, "player_*.py")))   # split in b8
+_player_defs = set()
+for _p in _player_files:
+    _player_defs |= _defs(_p)
+_addon_only = _defs(os.path.join(_pkg, "continuity", "ui.py")) - _player_defs
+for _f, _pat in (("player", r"self\.(\w+)"), ("drawui", r"\.player\.(\w+)")):
+    _text = "\n".join(open(f).read() for f in ([os.path.join(_pkg, _f + ".py")] + sorted(_glob.glob(os.path.join(_pkg, _f + "_*.py")))))
+    _used = set(_re.findall(_pat, _text))
     assert not (_used & _addon_only), (_f, sorted(_used & _addon_only))
 print("ok: the Simple player uses nothing that only the continuity add-on has (NoContinuity covers it)")

@@ -48,6 +48,7 @@ from bgcache.controller_gpu import GpuRescueMixin
 from bgcache.controller_edits import EditsMixin
 from bgcache.controller_sync import SyncMixin
 from bgcache.controller_refplane import RefPlaneMixin
+from bgcache.controller_cameras import CameraMixin
 
 
 PANEL_LABEL = "Background playback cache %s" % __version__
@@ -72,7 +73,7 @@ PLAYER_BOOT = ("import os, sys; sys.path.insert(0, os.environ['BGCACHE_PKG']); i
 # --------------------------------------------------------------------------
 # Controller
 # --------------------------------------------------------------------------
-class Controller(RefreshMixin, GpuRescueMixin, EditsMixin, SyncMixin, RefPlaneMixin):
+class Controller(RefreshMixin, GpuRescueMixin, EditsMixin, SyncMixin, RefPlaneMixin, CameraMixin):
     def __init__(self):
         self.session = None
         self.cfg = None
@@ -230,8 +231,12 @@ class Controller(RefreshMixin, GpuRescueMixin, EditsMixin, SyncMixin, RefPlaneMi
         renderer = scene.viewport_renderer()
         gpu_on, gpu_reason = scene.gpu_choice()
 
-        first = int(math.floor(cmds.playbackOptions(query=True, minTime=True)))
-        last = int(math.ceil(cmds.playbackOptions(query=True, maxTime=True)))
+        # b8: the whole shot (the studio's cut, else Maya's outer range), not
+        # just the playback range; your playback range becomes the focus.
+        shot = scene.shot_range(original_scene)
+        first, last = shot["start"], shot["end"]
+        print("bgcache: shot %d-%d (%s), your playback range %d-%d"
+              % (shot["cut"][0], shot["cut"][1], shot["from"], shot["maya"][0], shot["maya"][1]))
 
         cfg = {
             "session": self.session, "scene": scene_file,
@@ -239,6 +244,8 @@ class Controller(RefreshMixin, GpuRescueMixin, EditsMixin, SyncMixin, RefPlaneMi
             "original_scene": original_scene,
             "display": display, "display_from": scene.DISPLAY_SOURCE,
             "start": first, "end": last, "fps": scene.scene_fps(),
+            "cut": shot["cut"], "range_from": shot["from"], "maya_range": shot["maya"],
+            "focus": shot["maya"] if shot["maya"] != [first, last] else None,
             "width": int(width), "height": int(height), "chunk": int(chunk),
             "quality": int(quality),
             "switch_off_in_background": list(profile.get("switch_off_in_background") or ())
@@ -308,6 +315,9 @@ class Controller(RefreshMixin, GpuRescueMixin, EditsMixin, SyncMixin, RefPlaneMi
         self._cmd_ts = time.time()
         self._from_player = None
         self.sync_enabled = True
+        self._cameras_mtime = None
+        if self.cfg.get("maya_range"):
+            self._write_maya_range(self.cfg["maya_range"])     # b8: shown on the player's bar
         self._on_time_changed()          # player opens on the frame you're on
         self.status_timer.start(1000)
         self.sync_timer.start(150)
@@ -498,6 +508,35 @@ class Controller(RefreshMixin, GpuRescueMixin, EditsMixin, SyncMixin, RefPlaneMi
                 self.player_widget = None
         self.launch_player()
 
+    PLAYER_ANSWER_S = 3.0        # the player answers within its 250 ms poll
+    PLAYER_ASK_S = 600.0         # how long your answer to "Save your drawings?" can take
+
+    def _let_player_save(self, reason):
+        """b8: before the player is closed, it asks to save unsaved drawings
+        (Stop, opening another scene, quitting Maya). Waits for that answer;
+        a player that doesn't answer is closed anyway (its recovery copy
+        keeps the drawings)."""
+        proc = self.player_proc
+        if proc is None or proc.poll() is not None or not self.session:
+            return
+        path = common.paths(self.session)["player_close"]
+        asked = time.time()
+        try:
+            common.write_json_atomic(path, {"ts": asked, "reason": reason})
+        except (IOError, OSError) as error:
+            scene._ignored(error)
+            return
+        until = asked + self.PLAYER_ANSWER_S
+        while time.time() < until and proc.poll() is None:
+            answer = common.read_json(path + ".answer") or {}
+            if answer.get("ts", 0) >= asked:
+                if answer.get("state") == "asking":
+                    print("bgcache: the player is asking whether to save your drawings")
+                    until = max(until, time.time() + self.PLAYER_ASK_S)
+                elif answer.get("state") == "closing":
+                    until = min(until, time.time() + self.PLAYER_ANSWER_S)
+            time.sleep(0.05)
+
     def restart(self):
         """Stop, then start again fresh (the player's bgcache > Restart)."""
         self.trace("restart")
@@ -505,11 +544,12 @@ class Controller(RefreshMixin, GpuRescueMixin, EditsMixin, SyncMixin, RefPlaneMi
         cmds.evalDeferred(lambda: self.start(**_start_kwargs), lowestPriority=True)
 
     # ---------------------------------------------------------------- stop
-    def stop(self):
+    def stop(self, reason="stopping bgcache"):
         self.trace("stop")
         if not self.running:
             return
         common.post_message(self.session, {"op": "quit"})
+        self._let_player_save(reason)
         self._remove_callbacks()
         self.flush_timer.stop()
         self.status_timer.stop()

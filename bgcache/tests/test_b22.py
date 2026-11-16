@@ -1,6 +1,7 @@
 """0.9.0b2: updates only when you ask. Help > Check for updates looks in the
 studio releases folder, or on GitHub for everyone else; the answer shows in
 the Help menu; no Update button, nothing checks or installs by itself."""
+import _source  # noqa: E402 (tests/_source.py)
 import io
 import json
 import os
@@ -14,7 +15,7 @@ REPO = os.path.dirname(TESTS)
 sys.path.insert(0, REPO)
 from bgcache import update, profile                       # noqa: E402
 
-p = open(os.path.join(REPO, "bgcache", "player.py")).read()
+p = _source.source("player")
 assert "check_for_update(quiet=True)" not in p and "singleShot(4000, lambda: self.check_for_update" not in p
 assert "b_update" not in p and "updateButton" not in p and "def offer_update" not in p
 assert 'help_menu.addAction("Check for updates", self.check_for_update)' in p

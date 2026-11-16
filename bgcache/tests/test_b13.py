@@ -91,7 +91,7 @@ assert "Restart Maya to finish the update." in u
 c = _source.source("controller")
 assert 'elif cmd == "update":' in c and "update.update_and_restart(path)" in c
 assert '"releases_folder": profile.get("releases_folder") or "",' in c
-p = read("bgcache", "player.py")
+p = _source.source("player")
 assert "def check_for_update(self):" in p and '"Update and restart"' in p     # 0.9.0b2: only when asked
 assert 'self.send_cmd("update", path=path)' in p
 studio = os.path.join(REPO, "studio_private", "profile.json")

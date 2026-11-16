@@ -1,6 +1,7 @@
 """0.9.0b6: Help > Check for updates > Go back to an earlier version: the
 copies kept on this computer (every update and drag-and-drop install keeps
 one), older builds in a studio's releases folder, and older GitHub releases."""
+import _source  # noqa: E402 (tests/_source.py)
 import os
 import shutil
 import sys
@@ -58,7 +59,7 @@ assert [v["version"] for v in gh] == ["0.9.0b5", "0.9.0b4", "0.9.0b2"] and gh[0]
 assert update.earlier_on_github("r", "0.9.0b6", "windows", "simple") == []        # no Simple zips there
 print("ok: older GitHub releases with a zip for your system and edition")
 
-p = open(os.path.join(REPO, "bgcache", "player.py"), encoding="utf-8").read()
+p = _source.source("player")
 assert '("Go back to an earlier version", [' in p and "def go_back_to(self, item):" in p
 assert 'result["earlier"] = update.earlier_versions(install_dir, __version__, self.cfg["releases_folder"])' in p
 print("ok: Help > Check for updates lists 'Go back to an earlier version' with each version and where it's from")

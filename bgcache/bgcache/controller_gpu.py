@@ -123,8 +123,12 @@ class GpuRescueMixin(object):
 
     def _snapshot(self):
         self.snap = {}
-        first = int(math.floor(cmds.playbackOptions(query=True, minTime=True)))
-        last = int(math.ceil(cmds.playbackOptions(query=True, maxTime=True)))
+        cfg = getattr(self, "cfg", None) or {}
+        if "start" in cfg and "end" in cfg:             # b8: the whole shot, not just the playback range
+            first, last = int(cfg["start"]), int(cfg["end"])
+        else:
+            first = int(math.floor(cmds.playbackOptions(query=True, minTime=True)))
+            last = int(math.ceil(cmds.playbackOptions(query=True, maxTime=True)))
         curves = cmds.ls(type=scene.TIME_CURVE_TYPES) or []
         print("bgcache: snapshotting %d anim curves..." % len(curves))
         for name in curves:

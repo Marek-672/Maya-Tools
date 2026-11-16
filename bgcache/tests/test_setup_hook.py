@@ -1,6 +1,7 @@
 import os, sys
 TESTS = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(TESTS)
+import _source  # noqa: E402 (tests/_source.py)
 import sys, types, os, json, tempfile, time
 from unittest import mock
 root = tempfile.mkdtemp(); os.environ["BGCACHE_ROOT"] = root
@@ -12,7 +13,7 @@ class Dummy(object):
 def qtmod(name):
     m = mock.MagicMock(); m.__name__ = name; return m
 QtCore, QtGui, QtWidgets = qtmod("QtCore"), qtmod("QtGui"), qtmod("QtWidgets")
-for n in ("QWidget", "QFrame", "QLayout"): setattr(QtWidgets, n, Dummy)
+for n in ("QWidget", "QFrame", "QLayout", "QSpinBox"): setattr(QtWidgets, n, Dummy)
 class DummyLabel(Dummy):
     def setText(self, text): self._text = text
     def text(self): return getattr(self, "_text", "")
@@ -49,7 +50,7 @@ P.open_setup = lambda: opened.append(1)
 P.toggle_continuity()
 assert opened == [1] and not P.continuity_on
 print("ok: before any setup, the Continuity switch opens Set up continuity (and stays off)")
-src = open(os.path.join(REPO, "bgcache", "player.py")).read()
+src = _source.source("player")
 assert 'app_menu.addAction("Set up continuity...", self.open_setup)' in src
 print("ok: bgcache > Set up continuity... in the Full edition")
 
@@ -71,8 +72,9 @@ P._locate = lambda pos: ({"kind": "live", "ref": ["/m/1"], "n": 48}, 5)
 assert P.current_live_frame() == P.start + 5
 P._locate = lambda pos: ({"kind": "shot", "n": 48}, 5)
 assert P.current_live_frame() is None
-assert "self._paint_drawings_on_ref(p, target, frame)" in src and "if self.drawer.on and live:" in src
-print("ok: drawings stay on, and can be drawn, when your shot shows a department's movie; not on neighbours")
+assert "self._paint_drawings_on_ref(p, target, frame)" in src
+assert "elif not live and self.drawer.place() is not None:" in src          # b8: and on the shots around yours
+print("ok: drawings stay on, and can be drawn, when your shot shows a department's movie; b8: on neighbours too")
 
 # a focus range is also the play range (b4): Play stays inside it, loops it, skips neighbours
 del P._locate

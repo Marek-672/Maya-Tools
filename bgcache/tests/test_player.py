@@ -12,7 +12,7 @@ class Dummy(object):
 def qtmod(name):
     m = mock.MagicMock(); m.__name__ = name; return m
 QtCore, QtGui, QtWidgets = qtmod("QtCore"), qtmod("QtGui"), qtmod("QtWidgets")
-for n in ("QWidget", "QFrame", "QLayout"): setattr(QtWidgets, n, Dummy)
+for n in ("QWidget", "QFrame", "QLayout", "QSpinBox"): setattr(QtWidgets, n, Dummy)
 class DummyLabel(Dummy):
     def setText(self, text): self._text = text
     def text(self): return getattr(self, "_text", "")

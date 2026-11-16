@@ -217,7 +217,7 @@ def image_planes():
     for shape in cmds.ls(type="imagePlane", long=True) or []:
         try:
             tr = (cmds.listRelatives(shape, parent=True, fullPath=True) or [shape])[0]
-            cams = cmds.imagePlane(shape, query=True, camera=True) or []
+            cams = [c for c in (cmds.imagePlane(shape, query=True, camera=True) or []) if c]   # a free plane answers [""]
             if not cams:
                 continue                       # free image planes aren't camera backdrops
             attrs = {}
@@ -410,6 +410,59 @@ def dirty_ranges(old, new, first, last):
         if a <= b:
             out.append((a, b))
     return common.merge_ranges(out)
+
+
+# --------------------------------------------------------------------------
+# The shot's length (0.9.0b8)
+# --------------------------------------------------------------------------
+def _env_cut(spec, scene_file, environ=None):
+    """(start, end) from the studio's launcher settings (profile
+    shot_range_env), or None: not set, not numbers, or set for another shot
+    than the one in the scene's path."""
+    environ = os.environ if environ is None else environ
+    if not spec or not spec.get("start") or not spec.get("end"):
+        return None
+    try:
+        a, b = int(float(environ[spec["start"]])), int(float(environ[spec["end"]]))
+    except (KeyError, ValueError, TypeError):
+        return None
+    shot = environ.get(spec.get("shot") or "", "") if spec.get("shot") else ""
+    if spec.get("shot") and (not shot or shot.lower() not in (scene_file or "").replace("\\", "/").lower()):
+        return None
+    return (a, b) if a <= b else None
+
+
+def shot_range(scene_file, spec=None, environ=None):
+    """What the player lays out (0.9.0b8). Returns {"start", "end": the
+    whole shot as laid out; "cut": [a, b] (the shot's real length) or None;
+    "from": where the length came from ("studio", "outer range", "playback
+    range"); "maya": [a, b] your playback range (the inner time slider)}.
+
+    The shot: the studio's cut (when its launcher set one for this shot),
+    else Maya's outer range. Frames your playback range goes past it are
+    added, so the whole of what you work on is there; they show as outside
+    the cut (and go again when your range comes back inside it)."""
+    if spec is None:
+        spec = profile.get("shot_range_env") or {}
+    inner = (int(math.floor(cmds.playbackOptions(query=True, minTime=True))),
+             int(math.ceil(cmds.playbackOptions(query=True, maxTime=True))))
+    outer = (int(math.floor(cmds.playbackOptions(query=True, animationStartTime=True))),
+             int(math.ceil(cmds.playbackOptions(query=True, animationEndTime=True))))
+    cut = _env_cut(spec, scene_file, environ)
+    if cut:
+        found = "studio"
+    elif outer[0] <= inner[0] and inner[1] <= outer[1]:
+        cut, found = outer, "outer range"
+    else:
+        cut, found = inner, "playback range"
+    start, end = min(cut[0], inner[0]), max(cut[1], inner[1])      # the cut plus your range
+    return {"start": start, "end": end, "cut": [cut[0], cut[1]], "from": found, "maya": [inner[0], inner[1]]}
+
+
+def playback_range():
+    """Your playback range (the inner time slider), as whole frames."""
+    return [int(math.floor(cmds.playbackOptions(query=True, minTime=True))),
+            int(math.ceil(cmds.playbackOptions(query=True, maxTime=True)))]
 
 
 # --------------------------------------------------------------------------

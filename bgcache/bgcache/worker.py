@@ -13,6 +13,7 @@ import glob
 import os
 import re
 import shutil
+import sys
 import time
 import traceback
 
@@ -136,7 +137,10 @@ class Worker(object):
         self.ref_times = {}
         self.startup_logged = False
         self.panel = None
-        self.range_focus = None    # b18: the player's focus range, or None (whole shot)
+        # b18: the player's focus range, or None (whole shot); b8: from the
+        # start it's your playback range, so only that is rendered first
+        focus = cfg.get("focus")
+        self.range_focus = (int(focus[0]), int(focus[1])) if focus and len(focus) == 2 else None
         self.quitting = False
         self.last_error = ""
         self.convert_units = False  # flipped automatically if verification says so
@@ -206,15 +210,21 @@ class Worker(object):
 
     def _quit(self):
         """Close this Maya: no "Save changes?" (its scene copy has your edits
-        in it; on the Mac Maya asks even with force), no saved preferences."""
+        in it; on the Mac Maya asks even with force), no saved preferences.
+
+        0.9.0b8: it ends the process at once. Maya's own quit takes the whole
+        UI and the heavy scene apart first, and that crashed at a studio
+        (removeGraphEditor, 2026-11-04) and left a crash file. This Maya has
+        nothing to keep: the frames are already on disk, and your Maya (or
+        the player) cleans the session folder."""
         try:
             cmds.file(modified=False)
         except Exception as error:
             _ignored(error)
-        try:
-            cmds.quit(force=True, abort=True)
-        except TypeError:
-            cmds.quit(force=True)
+        log("closed")
+        sys.stdout.flush()
+        sys.stderr.flush()
+        os._exit(0)
 
     def _load_plugins(self):
         """Light mode: Maya started without auto-loaded plug-ins, so load the
@@ -264,6 +274,7 @@ class Worker(object):
             log("reference timing unavailable: %s" % error)
         t = time.time()
         try:
+            self._no_scene_layout()
             cmds.file(path, open=True, force=True, prompt=False)
         finally:
             for cb in ids:
@@ -325,6 +336,23 @@ class Worker(object):
         self.reloads = getattr(self, "reloads", 0) + 1
         log("scene reloaded (%d-%d), re-rendering" % (self.first, self.last))
 
+    def grow(self, first, last):
+        """b8: frames added to the shot (your range went past it): they're
+        dirty, and rendered once they're in the focus. b11: also smaller
+        again (your range came back inside the cut): frames outside are dropped."""
+        new = set(range(first, last + 1)) - set(range(self.first, self.last + 1))
+        self.first, self.last = int(first), int(last)
+        self.cfg["start"], self.cfg["end"] = self.first, self.last
+        for st in self.cams.values():
+            st["dirty"] = {f for f in st["dirty"] if first <= f <= last} | new
+            st["versions"] = {f: v for f, v in st["versions"].items() if first <= int(f) <= last}
+        try:
+            cmds.playbackOptions(animationStartTime=self.first, animationEndTime=self.last,
+                                 minTime=self.first, maxTime=self.last)
+        except Exception as error:
+            _ignored(error)
+        log("shot now %d-%d (%d new frames)" % (self.first, self.last, len(new)))
+
     def _build_panel(self):
         w, h = self.cfg["width"], self.cfg["height"]
         if cmds.window("bgcacheRenderWin", exists=True):
@@ -338,6 +366,36 @@ class Worker(object):
         self._apply_display()
         self._reload_textures()
         log("viewport settings: %s" % self._display_text())
+        self._log_planes()
+
+    def _immediate_textures(self):
+        """b15: textures are loaded before a frame is drawn, never in the
+        background. Set at start-up since b9, but found back on "parallel" at
+        a studio (something after start-up resets it): an image-sequence plane,
+        a new picture every frame, was then rendered as Maya's low-resolution
+        stand-in, blurred on every frame. Checked before every render."""
+        try:
+            mode = cmds.displayPref(query=True, materialLoadingMode=True)
+            if mode != "immediate":
+                cmds.displayPref(materialLoadingMode="immediate")
+                self._loading_resets = getattr(self, "_loading_resets", 0) + 1
+                if self._loading_resets <= 3:
+                    log("texture loading was '%s': set to immediate (textures load before a frame is drawn)" % mode)
+        except Exception as error:
+            if not getattr(self, "_loading_warned", False):
+                self._loading_warned = True
+                log("texture loading mode not set: %s" % error)
+
+    def _log_planes(self):
+        """b14: what this Maya has loaded for each image plane, and the render
+        settings in force, for comparing with yours (plane_report.py)."""
+        try:
+            self._immediate_textures()
+            from bgcache import plane_report
+            for line in plane_report.report(cmds, getattr(self, "panel", None)):
+                log(line)
+        except Exception as error:
+            log("image plane report failed: %s" % error)
 
     def _reload_textures(self):
         """b19: make the render view's renderer load its textures, as you would
@@ -408,10 +466,12 @@ class Worker(object):
             import importlib
             fn = getattr(importlib.import_module(module), name)
             try:
-                fn(self.panel)
+                said = fn(self.panel)
             except TypeError:
-                fn()
+                said = fn()
             log("before_playblast: %s ran" % call)
+            for line in (said if isinstance(said, (list, tuple)) else []):     # b16: what it did
+                log("  " + str(line))
         except Exception as error:
             log("before_playblast %s failed: %s" % (call, error))
 
@@ -459,7 +519,7 @@ class Worker(object):
         refs, others = [], []
         for shape in cmds.ls(type="imagePlane", long=True) or []:
             try:
-                if not (cmds.imagePlane(shape, query=True, camera=True) or []):
+                if not [c for c in (cmds.imagePlane(shape, query=True, camera=True) or []) if c]:
                     continue
             except Exception:  # plane gone or unreadable: skipped
                 continue
@@ -567,6 +627,19 @@ class Worker(object):
         if self.cfg.get("trace", True):
             log("trace: " + msg)
 
+    def _no_scene_layout(self):
+        """b16: a scene file carries the panel layout it was saved with (your
+        Graph Editor, Outliner, Script Editor...) and opening it rebuilds them
+        here. This Maya crashed twice in its own interface code with the Graph
+        Editor up (on quitting, and mid-session in a window event), and the
+        clean-up below found nothing to close. So: don't take the layout from
+        the scene at all (Maya's own preference, in this Maya's private prefs)."""
+        try:
+            cmds.optionVar(intValue=("useScenePanelConfig", 0))
+            log("panel layout saved in the scene: not used here")
+        except Exception as error:
+            log("scene panel layout still on: %s" % error)
+
     def _clean_ui(self):
         """The background Maya inherits your saved window layout (Graph Editor,
         Outliner...). Those redraw on every curve the worker rebuilds, a likely
@@ -614,6 +687,10 @@ class Worker(object):
             _ignored(error)
         log("background window cleaned up: closed %s; %d other viewport(s) drawing nothing"
             % (", ".join(closed) or "no editors", quiet))
+        try:
+            log("panels showing now: %s" % (", ".join(cmds.getPanel(visiblePanels=True) or []) or "none"))
+        except Exception as error:
+            log("panels showing now: ? (%s)" % error)
 
     def _minimize_main(self):
         if not self.cfg.get("hide", True):
@@ -823,6 +900,9 @@ class Worker(object):
         if op == "reload":
             self.reload(msg)
             return
+        if op == "grow":
+            self.grow(int(msg["start"]), int(msg["end"]))
+            return
         if op == "pause":
             self.set_paused(bool(msg.get("on")), msg.get("focus"))
             return
@@ -878,6 +958,7 @@ class Worker(object):
                 self._apply_display()
                 self._reload_textures()
                 log("viewport settings refreshed (%s)" % self._display_text())
+                self._log_planes()
             if msg.get("image_planes") is not None:
                 self.sync_image_planes(msg["image_planes"])
             if "gpu" in msg:
@@ -988,7 +1069,7 @@ class Worker(object):
         for shape in cmds.ls(type="imagePlane", long=True) or []:
             tr = (cmds.listRelatives(shape, parent=True, fullPath=True) or [shape])[0]
             name = tr.split("|")[-1]
-            if name in wanted or not (cmds.imagePlane(shape, query=True, camera=True) or []):
+            if name in wanted or not [c for c in (cmds.imagePlane(shape, query=True, camera=True) or []) if c]:
                 continue
             try:
                 if cmds.referenceQuery(tr, isNodeReferenced=True):
@@ -1241,6 +1322,7 @@ class Worker(object):
             widthHeight=(self.cfg["width"], self.cfg["height"]),
             filename=prefix, framePadding=4, forceOverwrite=True, viewer=False,
             showOrnaments=False, offScreen=True, clearCache=True)
+        self._immediate_textures()
         t = time.time()
         try:
             cmds.playblast(editorPanelName=self.panel, **kwargs)

@@ -1,5 +1,6 @@
 """Next build: the player's toolbar wraps onto more rows in a narrow window
 instead of stopping the window from getting narrower (studio note l16)."""
+import _source  # noqa: E402 (tests/_source.py)
 import os, sys, types
 TESTS = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(TESTS)
@@ -28,6 +29,6 @@ print("ok: very narrow: one button per row, never wider than the window allows")
 fake._items = [a, Item(100, hidden=True), c]
 assert F._lines(fake, 1000) == [[a, c]]
 print("ok: hidden buttons (e.g. Continuity in Simple) take no room")
-src = open(os.path.join(REPO, "bgcache", "player.py")).read()
+src = _source.source("player")
 assert "row = FlowLayout(bar" in src and "setFixedHeight(40)\n        row = QtWidgets.QHBoxLayout(bar)" not in src
 print("ok: the player's toolbar uses it")

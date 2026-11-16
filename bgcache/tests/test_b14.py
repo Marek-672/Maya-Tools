@@ -2,10 +2,11 @@
 first: bgcache, View, Help; then camera, Draw, the three cache buttons, Pause;
 Loop/Sound/Sync with the playback buttons; one Continuity switch on the strip,
 Update footage beside it); image planes as in your Maya."""
+import _source  # noqa: E402 (tests/_source.py)
 import os, re
 TESTS = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(TESTS)
-p = open(os.path.join(REPO, "bgcache", "player.py")).read()
+p = _source.source("player")
 bar = p[p.index("    def _build_ui(self):"):p.index("    def _build_playback_toggles(self):")]
 order = [bar.index(x) for x in ('_menu_word(row, "bgcache"', '_menu_word(row, "View"', '_menu_word(row, "Help"',
                                 'self.cam_button = _tool', 'self.b_draw = _tool', 'self.b_refresh = _tool',
@@ -29,7 +30,7 @@ assert "Sync test..." not in bar and "Sync test…" not in bar
 print("ok: bgcache: Push selected, Restart, Stop | View: Film gate, Show drawings, Keep on top, Sound section | "
       "Help: Self-test, Check for updates, About")
 tr = p[p.index("    def _build_transport(self):"):p.index("    # ---------------------------------------------------------------- updates")]
-assert "for b in (self.b_loop, self.b_sound, self.b_sync):" in tr
+assert "for b in (self.b_loop, self.b_sound, self.b_sync, self.b_match):" in tr
 print("ok: Loop, Sound and Sync sit with the playback buttons at the bottom")
 assert "QToolButton:checked { background: #3d6a8f; border-color: #8fc0e8;" in p
 print("ok: lit buttons have a bright outline as well as the colour")

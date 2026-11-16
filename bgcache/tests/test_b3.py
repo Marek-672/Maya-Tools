@@ -1,6 +1,7 @@
 """0.9.0b3: drawings saved on Save (player side), Help > Report a problem,
 footage with the version in the file name and .mp4, a list of releases
 folders."""
+import _source  # noqa: E402 (tests/_source.py)
 import base64
 import io
 import json
@@ -20,7 +21,7 @@ os.environ["BGCACHE_LOGS"] = os.path.join(tmp, "logs")
 from bgcache import common, profile, report, update   # noqa: E402
 
 # ---- player: Ctrl+S, the unsaved dot, ask before Stop / closing
-p = open(os.path.join(REPO, "bgcache", "player.py")).read()
+p = _source.source("player")
 keys = p.split("def keyPressEvent")[1].split("def keyReleaseEvent")[0]
 assert "if ctrl and key == Qt.Key_S and not shift:" in keys and "self.drawer.save_now()" in keys
 assert 'dot = " ●" if mine is not None and mine.dirty else ""' in p

@@ -35,12 +35,12 @@ assert not w.cams["|shotCam"]["dirty"]
 assert common.read_json(p["status"])["paused"] is False
 print("ok: resume starts at the frame you're on (22), alone first, then the rest")
 
-src = open(os.path.join(os.path.dirname(TESTS), "bgcache", "player.py")).read()
+src = _source.source("player")
 assert '"op": "pause"' in src and "pauseButton" in src
 src = _source.source("controller")
 assert '"pause": cmds.button' in src
 print("ok: Pause in the player toolbar and the Maya panel")
 
-src = open(os.path.join(os.path.dirname(TESTS), "bgcache", "player.py")).read()
+src = _source.source("player")
 assert '"PAUSED", y=tag_y, pause_icon=True' in src and "QColor(190, 30, 30, 46)" in src
 print("ok: (0.7.5) paused: red tint over the picture and an orange II PAUSED tag")

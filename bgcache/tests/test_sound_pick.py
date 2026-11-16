@@ -1,6 +1,7 @@
 """0.8.0b8: a shot with several sound tracks (full mix + stems) and none
 picked on the time slider plays the profile's preferred track (studio: _ax_)
 instead of nothing; muted tracks are skipped; a picked track still wins."""
+import _source  # noqa: E402 (tests/_source.py)
 import os, sys, types, tempfile
 TESTS = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(TESTS)
@@ -47,6 +48,6 @@ with mock.patch.object(profile, "get", lambda name: [] if name == "sound_prefere
     assert controller.pick_sound_node(stems, lambda n: True) is None
 print("ok: generic profile: the first unmuted track; all muted: none")
 
-src = open(os.path.join(REPO, "bgcache", "player.py")).read()
+src = _source.source("player")
 assert '"sound on, except your shot (%s)"' in src
 print("ok: the player says when your shot is silent while neighbours play")

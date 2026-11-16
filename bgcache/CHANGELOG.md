@@ -1,5 +1,46 @@
 # Changelog
 
+## 0.9.0 beta 18
+
+Everything since beta 7 (betas 8 to 17 were test builds and weren't published).
+
+- **The whole shot in the player, your range first.** The player lays out
+  the whole shot (Maya's outer range, the ends of the range slider) and your
+  playback range is the **focus**: rendered first and played. Frames not
+  rendered yet are hatched.
+- **Sync with Maya's range.** With Sync on, the focus and your Maya's
+  playback range are the same thing, both ways: drag either. With Sync off
+  they're separate, a blue line shows Maya's range, and **Match Maya** copies
+  it once. I and O set the focus.
+- **Cameras you move without keys update by themselves:** a follow camera
+  you tumble through, or a new focal length. A moment after you stop, the
+  player re-renders. No more select the camera and Push selected.
+- **Reference image planes placed in the scene** (not on a camera) are
+  followed the same way when you move or resize them.
+- **Image plane opacity** slider in the shot's menu, for the reference plane
+  in your Maya.
+- **Onion skin, your count:** Before and After boxes (0 to 5 drawings each,
+  counted in drawings, not frames; the nearest is the strongest). You can
+  type in the Draw strip's number boxes, and their arrows can be seen.
+- **Drawings:** other people's drawings are listed under their own name, off
+  until you switch them on, with a dot and Update when they've saved newer
+  ones. Stop, opening another scene or quitting asks to save your drawings
+  first. A drawing outside the frames you have never shows, held or not.
+  With continuity (Full) and a drawings folder in the pipeline profile, you
+  can draw on the shots around yours.
+- **Steadier background Maya:** it ends at once when you stop (Maya's own
+  quit could crash on the way out); it no longer rebuilds the panel layout
+  saved in your scene (Graph Editor, Outliner...); textures are loaded before
+  each frame is drawn; and its log now has an image plane report (what each
+  plane loaded, and the render settings), for when a plane looks different
+  in the cache than in your Maya.
+- **Fixed:** the player didn't open when a camera was already picked; the
+  shot stayed long after you closed your range again; a clearer message when
+  the open scene isn't in a shot folder.
+- For pipelines: `shot_range_env` in the profile gives the shot's cut from
+  your launcher's environment variables; a `before_playblast` hook's returned
+  lines are written to the background Maya's log. See PIPELINE_SETUP.md.
+
 ## 0.9.0 beta 7
 
 - **Fixed: no shelf button after installing** for some people: a shelf

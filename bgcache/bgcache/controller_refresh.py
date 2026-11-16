@@ -42,6 +42,8 @@ class RefreshMixin(object):
             values.append([plug, visible])
             changed += 1
         self.vis_base = now
+        planes = self.free_plane_values()         # b17: free image planes you moved or resized
+        values += planes
         gpu_on, gpu_reason = scene.gpu_choice()          # GPU Override switched since Start
         self.cfg["background_gpu"], self.cfg["gpu_reason"] = gpu_on, gpu_reason
         msg = {"op": "statics", "values": values,
@@ -53,8 +55,8 @@ class RefreshMixin(object):
             msg["display_from"] = scene.DISPLAY_SOURCE
         common.post_message(self.session, msg)
         print("bgcache: refreshed display (%d layer settings, %d objects shown/hidden, "
-              "viewport settings changed: %s)"
-              % (len(values) - changed, changed, ", ".join(display_changed) or "none"))
+              "%d free image plane values, viewport settings changed: %s)"
+              % (len(values) - changed - len(planes), changed, len(planes), ", ".join(display_changed) or "none"))
 
     def reload_scene(self):
         """Re-export your current scene and reopen it in the background Maya
@@ -81,8 +83,9 @@ class RefreshMixin(object):
             self._snapshot()
             self.vis_base = scene.visibility_states()
             self.pending = set()
-            first = int(math.floor(cmds.playbackOptions(query=True, minTime=True)))
-            last = int(math.ceil(cmds.playbackOptions(query=True, maxTime=True)))
+            shot = scene.shot_range(self.cfg.get("original_scene"))      # b8: the whole shot
+            first, last = shot["start"], shot["end"]
+            self.cfg.update({"cut": shot["cut"], "range_from": shot["from"], "maya_range": shot["maya"]})
             display = scene.viewport_display()           # b17: read again, never reused
             if display:
                 self.cfg["display"], self.cfg["display_from"] = display, scene.DISPLAY_SOURCE

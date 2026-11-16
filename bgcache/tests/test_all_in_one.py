@@ -50,7 +50,7 @@ src = open(os.path.join(REPO, "bgcache", "install.py")).read()
 assert "bgc.shelf_click()" in src and all(w in src for w in ("Stop bgcache", "Reopen player", "Restart bgcache", "Self-test"))
 assert "menuItemPython" in src
 print("ok: shelf button runs shelf_click, with a right-click menu: Stop, Reopen player, Restart, Self-test")
-p = open(os.path.join(REPO, "bgcache", "player.py")).read()
+p = _source.source("player")
 for words in ('"Stop bgcache, or keep caching in the background?"', '"Don\'t ask again"', '"Keep caching"',
               '"Stop bgcache"', '"Restart bgcache"',
               'self._close_quietly = True        # your Maya is gone'):
