@@ -9,6 +9,7 @@ import bisect
 import math
 import os
 import shutil
+import time
 
 import maya.cmds as cmds
 import maya.mel as mel
@@ -243,23 +244,59 @@ HELD_POLL_MS = 50        # while a mouse button is down (dragging keys), check a
 HELD_MAX_S = 5.0         # ...but send anyway after this long, in case the button state is wrong
 
 
-def _mouse_held():
+HELD_STUCK_S = 20.0      # a button "down" this long without a break is taken for a lost release
+_held_since = [None]
+
+
+def _qt_mouse_held():
+    try:
+        from PySide6 import QtGui
+    except ImportError:  # Maya 2024 and earlier (PySide2)
+        from PySide2 import QtGui
+    buttons = QtGui.QGuiApplication.mouseButtons()
+    try:
+        return int(buttons) != 0
+    except TypeError:        # PySide6 6.8 (Maya 2027): flags aren't numbers any more
+        return getattr(buttons, "value", 0) != 0
+
+
+def _os_mouse_held():
+    """Windows: what the system says (None elsewhere, or if it can't be asked)."""
+    if os.name != "nt":
+        return None
+    try:
+        import ctypes
+        state = ctypes.windll.user32.GetAsyncKeyState
+        return any(state(button) & 0x8000 for button in (1, 2, 4))
+    except Exception as error:
+        _ignored(error)
+        return None
+
+
+def _mouse_held(now=None):
     """True while a mouse button is down in Maya (dragging keys in the Graph
     Editor, a manipulator, a channel-box slider). A drag on a heavy rig updates
-    slower than the debounce, so without this every step of it was sent."""
+    slower than the debounce, so without this every step of it was sent.
+
+    b25: Qt can go on saying a button is down after losing its release (seen
+    on the home Maya: stuck on "left button" with nothing held). That stopped
+    cameras, shown / hidden and layers being followed for good. So: on
+    Windows the system is asked as well, and anywhere a button "down" for
+    HELD_STUCK_S without a break counts as not held."""
     try:
-        try:
-            from PySide6 import QtGui
-        except ImportError:  # Maya 2024 and earlier (PySide2)
-            from PySide2 import QtGui
-        buttons = QtGui.QGuiApplication.mouseButtons()
-        try:
-            return int(buttons) != 0
-        except TypeError:        # PySide6 6.8 (Maya 2027): flags aren't numbers any more
-            return getattr(buttons, "value", 0) != 0
+        held = _qt_mouse_held()
     except Exception as error:
         _ignored(error)
         return False
+    if not held:
+        _held_since[0] = None
+        return False
+    if _os_mouse_held() is False:
+        return False
+    now = time.time() if now is None else now
+    if _held_since[0] is None:
+        _held_since[0] = now
+    return now - _held_since[0] < HELD_STUCK_S
 
 
 # --------------------------------------------------------------------------
@@ -803,6 +840,42 @@ BUSY_EVENTS = ("time", "curve-edited", "curve-added", "curve-removed", "selectio
 REF_PLANE = "bgcache_reference"     # the reference image plane's name
 
 DISPLAY_LAYER_ATTRS = ("visibility", "displayType", "hideOnPlayback", "enabled")
+
+
+ANIM_LAYER_FLAGS = ("mute", "solo", "override", "passthrough")
+
+
+def anim_layer_values():
+    """{layer: {mute, solo, override, passthrough, weight}} for every
+    animation layer (b25). weight is None while it's keyed or driven: its
+    curve carries it."""
+    out = {}
+    for layer in cmds.ls(type="animLayer") or []:
+        try:
+            vals = dict((flag, bool(cmds.animLayer(layer, query=True, **{flag: True}))) for flag in ANIM_LAYER_FLAGS)
+            driven = cmds.listConnections(layer + ".weight", source=True, destination=False)
+            vals["weight"] = None if driven else round(float(cmds.animLayer(layer, query=True, weight=True)), 5)
+            out[layer] = vals
+        except Exception as error:
+            _ignored(error)
+    return out
+
+
+def anim_layer_counts():
+    """(layers, channels on layers), for telling that the layers themselves
+    have changed (one made or deleted, controls added to one): that rewires
+    the controls, which only Reload scene carries over."""
+    try:
+        root = cmds.animLayer(query=True, root=True)
+    except Exception as error:
+        _ignored(error)
+        root = None
+    try:
+        layers = [l for l in (cmds.ls(type="animLayer") or []) if l != root]
+        return len(layers), len(cmds.ls(type="animBlendNodeBase") or [])
+    except Exception as error:
+        _ignored(error)
+        return 0, 0
 
 
 def display_layer_values():

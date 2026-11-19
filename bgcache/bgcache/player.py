@@ -441,14 +441,14 @@ class Player(MenusMixin, RangeMixin, ReelMixin, SessionMixin, InputMixin, PaintM
         once it has been used, listing what it's holding, so a missing character a day
         later has an explanation. Clicking a name puts it back."""
         self.cache_lists = {"shown": [], "hidden": []}
-        self.b_show = _tool("Show", tip="Draw what's selected in your Maya here, though it's part of the "
+        self.b_show = _tool("Show selected", tip="Draw what's selected in your Maya here, though it's part of the "
                                         "environment or you hid it here. In the player only; forgotten when "
                                         "you stop bgcache.")
-        self.b_hide = _tool("Hide", tip="Leave what's selected in your Maya out of the player, though you can "
+        self.b_hide = _tool("Hide selected", tip="Leave what's selected in your Maya out of the player, though you can "
                                         "see it in Maya. In the player only; forgotten when you stop bgcache.")
         for button, name, cmd, said, key in (
-                (self.b_show, "showButton", "cache_show_selected", "Show: sent to your Maya", "shown"),
-                (self.b_hide, "hideButton", "cache_remove_selected", "Hide: sent to your Maya", "hidden")):
+                (self.b_show, "showButton", "cache_show_selected", "Show selected: sent to your Maya", "shown"),
+                (self.b_hide, "hideButton", "cache_remove_selected", "Hide selected: sent to your Maya", "hidden")):
             button.setObjectName(name)
             button.clicked.connect(lambda _=False, c=cmd, m=said: self._maya_cmd(c, m))
             row.addWidget(button)

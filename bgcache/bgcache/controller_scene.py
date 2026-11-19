@@ -24,8 +24,10 @@ def structure():
         except Exception:  # a reference node with no file (a leftover): not counted
             continue
     count = lambda **k: len(cmds.ls(**k) or [])
+    layers, channels = scene.anim_layer_counts()             # b25
     return {"references": refs, "constraints": count(type="constraint"),
-            "deformers": count(type="geometryFilter"), "objects": count(dag=True)}
+            "deformers": count(type="geometryFilter"), "objects": count(dag=True),
+            "anim_layers": layers, "anim_layer_channels": channels}
 
 
 class SceneWatchMixin(object):
@@ -49,6 +51,8 @@ class SceneWatchMixin(object):
                 scene._ignored(error)
         try:
             self.structure_cb_ids.append(om.MDGMessage.addNodeAddedCallback(self._on_constraint, "constraint"))
+            self.structure_cb_ids.append(om.MDGMessage.addNodeAddedCallback(      # b25
+                lambda *args: self._scene_changed("anim-layer"), "animLayer"))
         except Exception as error:
             scene._ignored(error)
         self._refresh_baseline()
@@ -62,6 +66,7 @@ class SceneWatchMixin(object):
             for plug, value in scene.display_layer_values() + self.free_plane_values():
                 sent[plug] = value
             sent["_image_planes"] = scene.image_planes()
+            sent["_anim_layers"] = scene.anim_layer_values()        # b25: mute / solo / weight are followed
         except Exception as error:
             scene._ignored(error)
         self._refresh_sent = sent

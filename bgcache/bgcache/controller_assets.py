@@ -63,6 +63,11 @@ class AssetsMixin(object):
         """Start (and Reload scene): note how the watched assets are shown now."""
         spec = self.cfg.get("cache_assets") or {}
         self._write_cache_lists()
+        self._vis_watch = {}
+        try:
+            self._note_selected(selected_transforms())      # what's selected as you start
+        except Exception as error:
+            scene._ignored(error)
         roots = self._asset_roots()
         self._asset_nodes, self._asset_seen, self._asset_checked = [], {}, time.time()
         if not roots:
@@ -88,26 +93,112 @@ class AssetsMixin(object):
                 scene._ignored(error)
         return out
 
+    WATCHED_MAX = 400              # the most selected things whose show / hide is followed
+
+    def _note_selected(self, nodes):
+        """From the selection: Ctrl+H and Shift+H act on what's selected, so
+        the things you select are the ones whose show / hide is looked at
+        (b24). Full paths of transforms; the oldest drop off."""
+        watch = getattr(self, "_vis_watch", None)
+        if watch is None:
+            watch = self._vis_watch = {}
+        for node in nodes:
+            watch.pop(node, None)
+            watch[node] = True              # newest last
+        for node in list(watch)[:max(0, len(watch) - self.WATCHED_MAX)]:
+            del watch[node]
+
+    def _selected_changes(self):
+        """Things you selected and then showed or hid (compared with what the
+        background Maya was last given: vis_base)."""
+        out = []
+        for node in list(getattr(self, "_vis_watch", None) or ()):
+            before = self.vis_base.get(node)
+            if before is None:
+                continue                      # new since Start: that's for Reload scene
+            plug = node + ".visibility"
+            try:
+                if not cmds.objExists(node):
+                    del self._vis_watch[node]
+                    continue
+                if cmds.listConnections(plug, source=True, destination=False):
+                    continue                  # keyed or driven: the curves carry it
+                value = bool(cmds.getAttr(plug))
+            except Exception as error:
+                scene._ignored(error)
+                continue
+            if value != before:
+                out.append([plug, value])
+        return out
+
+    def _layer_changes(self):
+        """Display layers you switched (visibility, template / reference, playback)."""
+        sent = getattr(self, "_refresh_sent", None)
+        if sent is None:
+            return []
+        try:
+            return [v for v in scene.display_layer_values() if v[0] in sent and sent[v[0]] != v[1]]
+        except Exception as error:
+            scene._ignored(error)
+            return []
+
+    def _send_anim_layers(self):
+        """b25: an animation layer you muted, soloed, or changed the weight or
+        mode of (layers the background Maya has: a new one needs Reload scene)."""
+        sent = getattr(self, "_refresh_sent", None)
+        if sent is None or "_anim_layers" not in sent:
+            return
+        before = sent["_anim_layers"]
+        try:
+            now = scene.anim_layer_values()
+        except Exception as error:
+            scene._ignored(error)
+            return
+        changed = dict((layer, vals) for layer, vals in now.items() if layer in before and before[layer] != vals)
+        if not changed:
+            return
+        before.update(changed)
+        self.trace("anim-layers", "%d" % len(changed))
+        common.post_message(self.session, {"op": "anim_layers", "layers": changed,
+                                           "ranges": [[self.cfg["start"], self.cfg["end"]]]})
+        said = "From your Maya: animation layer %s (mute, solo or weight). Re-rendering." % ", ".join(sorted(changed)[:3])
+        self._tell_player(said)
+        print("bgcache: " + said)
+
     def _send_shown_hidden(self):
-        """From the 150 ms poll, once a second: assets you've shown or hidden
-        since the last look are sent, and the shot re-renders."""
-        if not getattr(self, "_asset_nodes", None) or not self.running:
+        """From the 150 ms poll, once a second: what you've shown or hidden
+        since the last look is sent, and the shot re-renders. Looked at: the
+        asset groups (b20), anything you selected (Ctrl+H, Shift+H) and the
+        display layers (b24)."""
+        if not self.running:
             return
         now = time.time()
         if now - getattr(self, "_asset_checked", 0) < self.ASSETS_CHECK_S or scene._mouse_held():
             return
         self._asset_checked = now
-        states = self._asset_states()
-        changed = [[plug, value] for plug, value in states.items() if self._asset_seen.get(plug) != value]
-        self._asset_seen = states
-        if not changed:
+        self._send_anim_layers()
+        changed = []
+        if getattr(self, "_asset_nodes", None):
+            states = self._asset_states()
+            changed = [[plug, value] for plug, value in states.items() if self._asset_seen.get(plug) != value]
+            self._asset_seen = states
+        have = set(plug for plug, _ in changed)
+        changed += [v for v in self._selected_changes() if v[0] not in have]
+        layers = self._layer_changes()
+        if not changed and not layers:
             return
         for plug, value in changed:
             self.vis_base[plug[:-len(".visibility")]] = value      # Refresh won't send it again
-        self.trace("assets-shown-hidden", "%d" % len(changed))
-        common.post_message(self.session, {"op": "statics", "values": changed,
+        for plug, value in layers:
+            self._refresh_sent[plug] = value
+        self.trace("shown-hidden", "%d objects, %d layer settings" % (len(changed), len(layers)))
+        common.post_message(self.session, {"op": "statics", "values": changed + layers,
                                            "ranges": [[self.cfg["start"], self.cfg["end"]]]})
-        print("bgcache: %d asset(s) shown or hidden in your Maya: sent, re-rendering" % len(changed))
+        said = " and ".join(t for t in (
+            "%d object%s shown or hidden" % (len(changed), "" if len(changed) == 1 else "s") if changed else "",
+            "%d layer setting%s" % (len(layers), "" if len(layers) == 1 else "s") if layers else "") if t)
+        self._tell_player("From your Maya: %s. Re-rendering." % said)
+        print("bgcache: %s in your Maya: sent, re-rendering" % said)
 
     def cache_selected(self, show):
         """The player's Show and Hide buttons: what's selected in your Maya."""
@@ -116,7 +207,7 @@ class AssetsMixin(object):
             return
         nodes = selected_transforms()
         if not nodes:
-            self._tell_player("Select something in your Maya first, then press %s" % ("Show" if show else "Hide"))
+            self._tell_player("Select something in your Maya first, then press %s" % ("Show selected" if show else "Hide selected"))
             return
         spec = self.cfg.get("cache_assets") or {}
         shown, removed = (assets.show if show else assets.remove)(spec.get("shown") or [], spec.get("removed") or [], nodes)

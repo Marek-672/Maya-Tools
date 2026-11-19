@@ -26,7 +26,7 @@ assert "cache_lists" in common.paths("x") and "_write_cache_lists" in c
 assert 'cmd == "cache_forget"' in src("controller_sync.py")
 
 p, s = src("player.py"), src("player_session.py")
-assert '_tool("Show"' in p and '_tool("Hide"' in p and "Hidden in the player" in p and "Shown in the player" in p
+assert '_tool("Show selected"' in p and '_tool("Hide selected"' in p and "Hidden in the player" in p and "Shown in the player" in p
 assert '"Show selected in the cache"' not in p and '"Remove selected from the cache"' not in p
 assert "_list_arrow.setVisible(bool(count))" in s and "self._check_cache_lists()" in s
 print("ok: Show and Hide are on the bar; the arrow and its list appear only when a button is holding something")
