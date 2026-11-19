@@ -46,9 +46,9 @@ assert plugs["bgLayer.visibility"] is False and plugs["|prop.visibility"] is Fal
 assert "|char|geo.visibility" not in plugs and "|animVis.visibility" not in plugs
 assert msg["ranges"] == [[1001, 1340]]
 c.refresh_display()
-msg = common.take_messages(c.session)[-1]
-assert not any(k.endswith(".visibility") and k.startswith("|") for k, v in msg["values"])
-print("ok: Refresh sends display layers + only objects you hid/showed since last time (animated visibility left to curves)")
+assert common.take_messages(c.session) == []            # b21: nothing changed since: nothing sent, no re-render
+print("ok: Refresh sends the display layers and objects you changed since last time (animated visibility left "
+      "to curves); pressed again with nothing changed, it sends nothing")
 
 # --- 0.7.2: Refresh also re-reads your viewport (wireframe on shaded etc.)
 assert "wireframeOnShaded" in controller.DISPLAY_FLAGS and "xray" in controller.DISPLAY_FLAGS
@@ -60,7 +60,7 @@ assert msg["display"]["wireframeOnShaded"] is True and msg["ranges"] == [[1001, 
 assert c.cfg["display"]["wireframeOnShaded"] is True      # Reload scene sends the new settings too
 with mock.patch.object(controller.scene, "viewport_display", lambda: {}):
     c.refresh_display()                                    # no viewport found: keep the old settings
-assert "display" not in common.take_messages(c.session)[-1] and c.cfg["display"]["wireframeOnShaded"]
+assert common.take_messages(c.session) == [] and c.cfg["display"]["wireframeOnShaded"]   # b21: and nothing to send
 print("ok: Refresh re-reads your viewport's display settings (wireframe on shaded, x-ray...) and sends them")
 
 # --- Reload scene

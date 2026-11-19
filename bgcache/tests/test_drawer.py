@@ -10,7 +10,7 @@ QtCore, QtGui, QtWidgets = qtmod("QtCore"), qtmod("QtGui"), qtmod("QtWidgets")
 class Dummy(object):
     def __init__(self, *a, **k): pass
     def __getattr__(self, name): return mock.MagicMock()
-for n in ("QWidget", "QFrame", "QLayout"): setattr(QtWidgets, n, Dummy)
+for n in ("QWidget", "QFrame", "QLayout", "QSpinBox"): setattr(QtWidgets, n, Dummy)
 class DummyLabel(Dummy):
     def setText(self, text): self._text = text
     def text(self): return getattr(self, "_text", "")
@@ -183,18 +183,18 @@ black.clicked  # exists
 panel.set_color("#000000")
 assert d.color == "#000000" and black.isChecked() and not panel.custom_swatch.isChecked()
 picks = []
-with mock.patch.object(drawui, "pick_color", lambda parent, initial: picks.append(initial) or "#8844ff"):
+with mock.patch.object(sys.modules["bgcache.drawui_panel"], "pick_color", lambda parent, initial: picks.append(initial) or "#8844ff"):
     panel.custom_clicked()                     # no custom colour yet: opens the picker
 assert picks and d.custom == "#8844ff" and d.color == "#8844ff"
 assert panel.custom_swatch.isChecked() and not black.isChecked()
 assert player.prefs["drawing"]["custom_color"] == "#8844ff"     # remembered
 panel.set_color(drawing.COLORS[0]); picks.clear()
-with mock.patch.object(drawui, "pick_color", lambda parent, initial: picks.append(initial) or "#00ff00"):
+with mock.patch.object(sys.modules["bgcache.drawui_panel"], "pick_color", lambda parent, initial: picks.append(initial) or "#00ff00"):
     panel.custom_clicked()                     # not current: just use it
     assert d.color == "#8844ff" and not picks
     panel.custom_clicked()                     # current: change it
 assert picks == ["#8844ff"] and d.color == d.custom == "#00ff00"
-with mock.patch.object(drawui, "pick_color", lambda parent, initial: None):
+with mock.patch.object(sys.modules["bgcache.drawui_panel"], "pick_color", lambda parent, initial: None):
     panel.custom_clicked()                     # cancelled: nothing changes
 assert d.color == "#00ff00"
 print("ok: black swatch, custom colour (first click picks, then use / click again to change), remembered")

@@ -67,7 +67,7 @@ assert 'cmds.ls("bgcache_reference*"' not in wsrc
 print("ok: the background Maya no longer deletes the reference plane when it opens the scene")
 
 csrc = _source.source("controller")
-assert 'display["imagePlane"] = True' not in csrc and '"image_planes": scene.image_planes()' in csrc
+assert 'display["imagePlane"] = True' not in csrc and '"image_planes": image_planes,' in csrc and "image_planes = scene.image_planes()" in csrc
 assert "panel = _shot_camera_panel() or _active_model_panel()" in csrc
 assert 'and attrs.get("displayMode", 1) != 0' in csrc and 'cmds.getAttr(shape + ".visibility")' in csrc
 assert "self._send_image_planes()" not in csrc.split("def show_image_plane")[1].split("def _before_save")[0]

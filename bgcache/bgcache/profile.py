@@ -102,6 +102,12 @@ DEFAULT = {
     # render view is made: "module.function" (given the panel name, or no
     # arguments). Empty: nothing.
     "before_playblast": "",
+    # 0.9.0b20, what's drawn in the cache: what you see in your Maya, without
+    # the environment. {"root": "Assets", "environment": ["environ", ...]}:
+    # the groups directly under a group called <root> that are never drawn
+    # (hidden in the background Maya only). Unset: no plug-in shapes of the
+    # environment kinds (USD, gpuCache) are drawn, as before.
+    "cache_assets": {},
     # Updates, only when the artist asks (Help > Check for updates):
     # releases_folder: a studio folder of release zips (bgcache_<version>.zip),
     # or a list of folders tried in order; when set, the only place looked at.
@@ -138,6 +144,12 @@ DEFAULT = {
     # {project} in the team's paths (P:/FILM on Windows, /Volumes/FILM on a Mac).
     "team_settings": "",
     "project_folder": "",
+    # 0.9.0b8, the shot's real length (its cut) from the studio's launcher:
+    # {"start": env var, "end": env var, "shot": env var naming the shot the
+    # launcher set them for}. Used only while that shot's name is in the
+    # scene's path (so a scene of another shot opened in the same Maya
+    # doesn't get the wrong length). Empty: Maya's outer range is the shot.
+    "shot_range_env": {},
     "reports_url": "https://script.google.com/macros/s/AKfycbxvqrA4Uwsksy4NeuO1zhbzazfk0KgRdL62mumHj9aZ39GCbVAaBL2X_GNUxHNkDbA9/exec",
     "reports_folder": "",
 }

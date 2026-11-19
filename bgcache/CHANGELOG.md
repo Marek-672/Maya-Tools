@@ -1,5 +1,67 @@
 # Changelog
 
+## 0.9.0 beta 22
+
+Everything since beta 7 (betas 8 to 21 were test builds and weren't published).
+
+- **One Refresh.** The top bar's cache buttons are down to Refresh and Pause.
+  When the player doesn't match your Maya, press Refresh: it sends what's
+  different (viewport settings, things shown or hidden, values you changed
+  without a key) and says what it sent, or that nothing was different. If
+  the scene itself changed (a reference added or removed, something
+  imported, a constraint made), an orange note shows next to Refresh, and
+  Refresh asks before reloading the scene, in the player: **Reload scene**
+  or **Not now**. Push selected is gone; Reload scene is in the bgcache menu
+  and Re-render all in Help.
+- **The background Maya starts from its own clean settings** (Maya's
+  defaults plus your graphics and colour settings), not a copy of yours, so
+  your panels, layouts and start-up scripts never open in it. No splash, and
+  no full-screen window flashing up at Start.
+- **Show and Hide.** Select something in your Maya and press **Hide** to
+  leave it out of the player (a character in your way), or **Show** to bring
+  it back. Only the player changes. An arrow beside the button lists what
+  you've hidden, so nothing goes missing without an explanation; click a name
+  to put it back. It's for the working session only: Stop forgets it.
+- **The whole shot in the player, your range first.** The player lays out
+  the whole shot (Maya's outer range, the ends of the range slider) and your
+  playback range is the **focus**: rendered first and played. Frames not
+  rendered yet are hatched.
+- **Sync with Maya's range.** With Sync on, the focus and your Maya's
+  playback range are the same thing, both ways: drag either. With Sync off
+  they're separate, a blue line shows Maya's range, and **Match Maya** copies
+  it once. I and O set the focus.
+- **Cameras you move without keys update by themselves:** a follow camera
+  you tumble through, or a new focal length. A moment after you stop, the
+  player re-renders. No more select the camera and Push selected.
+- **Reference image planes placed in the scene** (not on a camera) are
+  followed the same way when you move or resize them.
+- **Image plane opacity** slider in the shot's menu, for the reference plane
+  in your Maya.
+- **Onion skin, your count:** Before and After boxes (0 to 5 drawings each,
+  counted in drawings, not frames; the nearest is the strongest). You can
+  type in the Draw strip's number boxes, and their arrows can be seen.
+- **Drawings:** other people's drawings are listed under their own name, off
+  until you switch them on, with a dot and Update when they've saved newer
+  ones. Stop, opening another scene or quitting asks to save your drawings
+  first. A drawing outside the frames you have never shows, held or not.
+  With continuity (Full) and a drawings folder in the pipeline profile, you
+  can draw on the shots around yours.
+- **Steadier background Maya:** it ends at once when you stop (Maya's own
+  quit could crash on the way out); it no longer rebuilds the panel layout
+  saved in your scene (Graph Editor, Outliner...); textures are loaded before
+  each frame is drawn; and its log now has an image plane report (what each
+  plane loaded, and the render settings), for when a plane looks different
+  in the cache than in your Maya.
+- **Fixed:** the player didn't open when a camera was already picked; the
+  shot stayed long after you closed your range again; a clearer message when
+  the open scene isn't in a shot folder.
+- A test tool, `tools/maya_torture.py`: runs bgcache through 34 things a
+  user might do, or do by accident, in a real Maya and writes a report.
+- For pipelines: `cache_assets` leaves your environment groups out of the
+  cache; `shot_range_env` in the profile gives the shot's cut from
+  your launcher's environment variables; a `before_playblast` hook's returned
+  lines are written to the background Maya's log. See PIPELINE_SETUP.md.
+
 ## 0.9.0 beta 7
 
 - **Fixed: no shelf button after installing** for some people: a shelf

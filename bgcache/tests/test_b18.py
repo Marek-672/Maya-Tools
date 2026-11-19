@@ -114,7 +114,7 @@ print("ok: continuity cache keeps the newest 2 converted versions per department
       "older ones go (unless used today)")
 
 # ---- the player: focus handles, I/O, status, cameras.json
-pl = open(os.path.join(REPO, "bgcache", "player.py")).read()
+pl = _source.source("player")
 for words in ("def set_focus(self", "Qt.Key_I, Qt.Key_O", "def _paint_focus", "mouseDoubleClickEvent",
               '"Clear focus range (cache the whole shot)"', '"focus": list(self.focus_range)',
               'text += "  ·  focus %d-%d" % self.focus_range', "dirty = self._dirty_in_focus()"):

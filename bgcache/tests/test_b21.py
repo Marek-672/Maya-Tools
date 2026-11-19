@@ -17,7 +17,7 @@ for name in ("scene", "controller_edits", "controller_refresh", "controller_gpu"
              "controller_refplane"):
     assert os.path.isfile(os.path.join(PKG, name + ".py")), name
 c = open(os.path.join(PKG, "controller.py")).read()
-assert "class Controller(RefreshMixin, GpuRescueMixin, EditsMixin, SyncMixin, RefPlaneMixin):" in c
+assert "class Controller(RefreshMixin, GpuRescueMixin, EditsMixin, SyncMixin, RefPlaneMixin, CameraMixin, AssetsMixin," in c
 assert "from bgcache.scene import *" in c
 assert len(c.splitlines()) < 1000, len(c.splitlines())
 print("ok: controller.py is the Controller's start/launch/stop/status and the shelf; the rest is in topic files")

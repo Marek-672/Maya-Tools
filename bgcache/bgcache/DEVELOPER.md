@@ -30,6 +30,7 @@ test and build it.
 | `controller_refresh.py` | `RefreshMixin`: Refresh (`refresh_display`) and Reload scene. |
 | `controller_gpu.py` | `GpuRescueMixin`: notices the hidden Maya stuck on GPU errors and restarts it on the CPU (`restart_on_cpu`, once per session). |
 | `controller_sync.py` | `SyncMixin`: time sync with the player (`player_time.json`, `maya_time.json`), the player's buttons that need your Maya (`player_cmd.json`: Refresh, Reload scene, Stop...), Push selected, Re-render all. |
+| `controller_cameras.py` | `CameraMixin` (0.9.0b12): watches the cameras being cached (cameras.json's checked list) and, when one you moved without keys comes to rest, sends its unkeyed values (`statics`). |
 | `controller_refplane.py` | `RefPlaneMixin`: the player's reference movie as an image plane in your Maya. |
 | `scene.py` | Plain functions that read your scene and Maya: cameras, viewport settings and renderer, image planes, sound, GPU Override, path curves, anim curve data, where Maya and mayapy are, the hidden Maya's preferences folder. No state, except `DISPLAY_SOURCE`. |
 | `hotkeys.py` | Reads your Maya hotkeys, so the player's keys match. |
@@ -55,8 +56,15 @@ are the same objects as in `scene.py`.
 
 | File | What's in it |
 |---|---|
-| `player.py` | `Player`: the window (`_build_ui` and its `_build_*` parts), playback, the cache bar, sync with your Maya, focus range, health banners, studio update check. `main()` is the mayapy entry. |
-| `drawui.py`, `drawing.py` | Drawing: the strip (`DrawPanel`), pen input, painting, layers, Blue Pencil export/import. Since 0.9.0b3 edits mark the drawings dirty (`Drawer.edited`) and write a recovery copy; only `save_now` (Save, Ctrl+S) writes the shared file, keeping the last 10 versions (`Drawing.versions`, `restore`). |
+| `player.py` | `Player`: the window (`_build_ui` and its `_build_*` parts), the Canvas, `main()` (the mayapy entry). Since 0.9.0b8 the rest is in topic files, as mixins (like the controller's): |
+| `player_menus.py` | `MenusMixin`: Help > Check for updates (and Go back to an earlier version), Help > Report a problem (`ReportDialog`), the camera menu. |
+| `player_range.py` | `RangeMixin`: the focus range (I / O, the bar's handles) and, b8, your Maya's playback range (`maya_range.json`): with Sync on they're the same both ways, Match Maya, the shot's cut (`cfg["cut"]`). |
+| `player_reel.py` | `ReelMixin`: the reel (shots before, yours, after) and its sound; sound timing, the sync test. |
+| `player_session.py` | `SessionMixin`: time sync, Reload scene, health banners, reading new frames (`_poll`), closing when your Maya asks (`player_close.json`, b8). |
+| `player_input.py` | `InputMixin`: playback, keys, mouse and pen. |
+| `player_paint.py` | `PaintMixin`: the picture, drawings, overlays, banners and the cache bar (hatched: not rendered yet; red: out of date; purple line: outside the cut; blue line: your Maya's range). |
+| `player_common.py` | Qt, colours and small helpers shared by the player files. |
+| `drawui.py`, `drawing.py` | Drawing: `drawing.py` is the files (no Qt); `drawui.py` the `Drawer` (where you draw: your shot or, b8, a shot around it, `place()`; rows; changes), split in b8 into `drawui_people.py` (other people: snapshots, Update / Revert, listed by themselves with their layers off), `drawui_saving.py` (Save, versions, recovery, asking to save), `drawui_strokes.py` (pen and eraser, painting, Blue Pencil export), `drawui_widgets.py` and `drawui_panel.py` (the strip), `drawui_icons.py`, `drawui_common.py`. Since 0.9.0b3 edits mark the drawings dirty (`Drawer.edited`) and write a recovery copy; only `save_now` (Save, Ctrl+S) writes the shared file, keeping the last 10 versions. |
 | `report.py` | Help > Report a problem: gathers the logs into a zip, Hide names, Save, and Send to the profile's `reports_url`. With `update.py`, the only code that goes online, and only on a click. |
 | `continuity/` | The Full edition's neighbour shots: `ui.py` (the strip), `reel.py` (converting and playing), `resolver.py` (which file is a shot's footage), `names.py` (movie / sequence names and versions however written). 0.9.0b4: `learn.py` (the setup wizard's learning core: paths in, settings out; `scan` for Search by shot name), `wizard.py` (the five-step window), `edit_order.py` (cut order from EDL / XML / FCPXML), `ffmpeg_get.py` (find ffmpeg, or download the pinned build). The Simple edition is built without this folder; `player.py` falls back to `NoContinuity`. |
 | `audio.py`, `widgets.py`, `theme.py` | Sound, small shared widgets, the dark look. |
@@ -76,6 +84,7 @@ are the same objects as in `scene.py`.
 - **Nothing extra in the hidden Maya's render path** unless it must be there: new features go in the player.
 - **A "catch any error" says why:** each `except Exception` either reports the error (`scene._ignored` writes trace.log, `worker._ignored` writes worker.log, or a message the artist sees) or has a one-line comment giving the reason it is safe to carry on. `tests/test_b21.py` checks this.
 - **No function over 80 lines** (also checked by `tests/test_b21.py`).
+- **Getting a studio build to work without a download:** `tools/make_paste.py` turns an install folder update into `PASTE_bgcache_<version>.py` (and parts) to paste into Maya's Script Editor; it publishes into the studio install folder. See `PASTE_INSTALL.md` (studio only).
 - **Studio-specific code never goes in the shared files.** It lives in `studio_private/` (a studio's `profile.json` and `studio_*.py` hooks named in it, such as `before_playblast`) and is added only by `tools/build_studio.py`.
 
 ## Tests

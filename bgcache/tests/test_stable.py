@@ -41,5 +41,5 @@ print("   ", logs[-1])
 quits = []
 cmds.quit.side_effect = lambda **k: quits.append(k)
 src = open(os.path.join(REPO, "bgcache", "worker.py")).read()
-assert "cmds.quit(force=True, abort=True)" in src
-print("ok: the background Maya quits with abort=True (no preferences saved)")
+assert "os._exit(0)" in src and "cmds.quit(" not in src.split("def _quit")[1].split("def ")[0]
+print("ok: the background Maya ends at once (b8): no preferences saved, no UI tear-down")

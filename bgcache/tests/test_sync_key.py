@@ -3,10 +3,11 @@
 live/reference flip (R, Maya's scale) any more; an orange SYNC OFF tag shows on
 the picture while it's off. Also: your shot's card shows the chosen movie with
 an orange REF tag."""
+import _source  # noqa: E402 (tests/_source.py)
 import os
 TESTS = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(TESTS)
-p = open(os.path.join(REPO, "bgcache", "player.py")).read()
+p = _source.source("player")
 keys = p.split("def keyPressEvent")[1].split("def keyReleaseEvent")[0]
 bare = [l for l in keys.splitlines() if ("Qt.Key_S " in l or "Qt.Key_S)" in l or "Qt.Key_S:" in l or "Qt.Key_R " in l or "Qt.Key_R)" in l)
         and "ctrl and" not in l]

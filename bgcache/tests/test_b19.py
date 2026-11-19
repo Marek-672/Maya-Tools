@@ -75,5 +75,5 @@ if os.path.isfile(studio):
 mp_path = os.path.join(REPO, "tools", "make_public.py")
 if os.path.isfile(mp_path):                # not in the public copy itself
     mp = open(mp_path).read()
-    assert ("dn" + "viewport") in mp and "build_studio.py" not in mp.split("INCLUDE = ")[1].split("]")[0]
+    assert ("dn" + "viewport") in mp and '"build_studio.py"' in mp.split("STUDIO_ONLY = ")[1].split("}")[0]
 print("ok: the public copy refuses the studio viewport commands and leaves the studio build script out")

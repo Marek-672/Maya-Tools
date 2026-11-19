@@ -34,7 +34,7 @@ Made by an animator for animators. Free and open source (MIT).
   cut from an EDL or XML. Works for one person or a team.
 - **Focus range:** drag two handles on the cache bar (or press I / O) to cache
   only the part you're working on.
-- **Refresh, Reload scene, Re-render all, Pause**, a self-test, and clear
+- **One Refresh** (it sends what's different and asks before reloading the scene), **Pause**, a self-test, and clear
   warnings when something needs you (for example the graphics card running
   out of memory).
 - **Safe:** your scene file is never saved or changed by BGCache, and the

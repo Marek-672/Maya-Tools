@@ -26,7 +26,7 @@ class EditsMixin(object):
             return
         self.trace("scene-change", "stopping before the scene changes")
         print("bgcache: the scene is changing, so bgcache is stopping. Click Start again in the new scene.")
-        self.stop()
+        self.stop("your Maya changes scene")
 
     def _install_callbacks(self):
         self.scene_cb_ids = []
@@ -50,6 +50,14 @@ class EditsMixin(object):
             # New scene or opening another file ends the session.
             cmds.scriptJob(event=["deleteAll", lambda: cmds.evalDeferred(self.stop)]),
         ]
+        self._cameras_mtime = None      # b12: read cameras.json again, so the cached cameras are watched
+        self._watch_assets()            # b20: assets you show or hide are followed
+        self._watch_scene()             # b21: references, imports, constraints: the player is told
+        try:            # b8: your playback range is the player's focus (with Sync)
+            self.job_ids.append(cmds.scriptJob(event=["playbackRangeChanged", self._on_range_changed]))
+        except Exception as error:
+            om.MGlobal.displayWarning("bgcache: can't follow your playback range (%s): "
+                                      "the player's focus won't follow it" % error)
 
     # ---------------------------------------------------------------- crash trace
     def trace(self, event, detail=""):
@@ -161,6 +169,8 @@ class EditsMixin(object):
             except Exception as error:
                 scene._ignored(error)
         self.callback_ids, self.job_ids = [], []
+        self._unwatch_cameras()
+        self._unwatch_scene()
 
     def _schedule(self):
         self._last_edit_t = time.time()      # for the "edit synced" timing in worker.log

@@ -17,7 +17,7 @@ class RefPlaneMixin(object):
                 return tr, shapes[0]
         return None, None
 
-    def show_image_plane(self, camera, path, offset, mode):
+    def show_image_plane(self, camera, path, offset, mode, alpha=None):
         """One reference image plane on the shot camera, filling its view.
         mode "front": just past the near clip, covers the scene.
         mode "behind": just inside the far clip, the scene draws over it.
@@ -29,7 +29,7 @@ class RefPlaneMixin(object):
         cam = (cmds.listRelatives(camera, shapes=True, type="camera", fullPath=True) or [camera])[0]
         tr, shape = self._find_plane()
         if shape:
-            attached = cmds.imagePlane(shape, query=True, camera=True) or []
+            attached = [c for c in (cmds.imagePlane(shape, query=True, camera=True) or []) if c]
             names = set(cmds.ls(attached, long=True) or [])
             names |= set(cmds.listRelatives(attached, shapes=True, fullPath=True) or []) if attached else set()
             if cam not in names:      # attached to another camera: start again
@@ -53,6 +53,8 @@ class RefPlaneMixin(object):
         far = cmds.getAttr(cam + ".farClipPlane")
         depth = min(near * 1.5, far * 0.5) if mode == "front" else far * 0.95
         cmds.setAttr(shape + ".depth", depth)
+        if alpha is not None:             # b12: the player's opacity slider
+            cmds.setAttr(shape + ".alphaGain", min(1.0, max(0.0, float(alpha))))
         if self.save_cb is None:
             self.save_cb = om.MSceneMessage.addCallback(om.MSceneMessage.kBeforeSave, self._before_save)
         # b17: in your Maya only; the cache gets it at the next Refresh, like
@@ -72,6 +74,14 @@ class RefPlaneMixin(object):
                                                "ranges": [[cfg["start"], cfg["end"]]]})
         except Exception as error:
             scene._ignored(error)            # the plane in your Maya matters more than the cache
+
+    def set_image_plane_alpha(self, alpha):
+        """b12: the player's opacity slider for the reference image plane
+        (its Alpha Gain: 1 solid, 0 invisible). In your Maya at once; in the
+        cache at the next Refresh, like everything about image planes."""
+        _tr, shape = self._find_plane()
+        if shape:
+            cmds.setAttr(shape + ".alphaGain", min(1.0, max(0.0, float(alpha))))
 
     def remove_image_plane(self):
         self.trace("image-plane-remove")

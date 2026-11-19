@@ -268,6 +268,7 @@ class Continuity(object):
         self.live_ref_ready = None                     # {"info", "frames"} once converted
         self._live_gen = 0
         self.plane_mode = None                         # Maya image plane: "front", "behind" or None
+        self.plane_alpha = min(1.0, max(0.0, float(self.prefs.get("plane_alpha", 1.0))))   # b12: its opacity
         self.continuity_on = bool(self.prefs.get("continuity", True)) and bool(self.shot_ids)
         self.browser_open = bool(self.prefs.get("browser_open", True))
         self.shots = []           # sequence order
@@ -574,6 +575,7 @@ class Continuity(object):
             act.setChecked(self.plane_mode == mode)
             act.setEnabled(bool(ref))
             act.triggered.connect(lambda _=False, m=mode: self.image_plane(m))
+        self._plane_opacity_item(menu)
         act = menu.addAction("Remove image plane")
         act.setEnabled(self.plane_mode is not None)
         act.triggered.connect(self.remove_image_plane)
@@ -673,13 +675,42 @@ class Continuity(object):
                 self._flash_message("Image plane: %s" % value)
                 return
             path, first = value
-            self.send_cmd("image_plane", mode=mode, camera=camera, path=path, offset=first - self.start)
+            self.send_cmd("image_plane", mode=mode, camera=camera, path=path, offset=first - self.start,
+                          alpha=self.plane_alpha)
             self.plane_mode = mode
             self._flash_message("Image plane in your Maya: %s (%s). Refresh to see it in the cache"
                                 % ("in front" if mode == "front" else "behind", dept), 5.0)
 
         self._flash_message("Preparing image plane...")
         self.jobs.add(0, work, done)
+
+    def _plane_opacity_item(self, menu):
+        """b12: an opacity slider for the image plane, in the same menu
+        (before, it was the plane's Alpha Gain, under the camera's shape)."""
+        holder = QtWidgets.QWidget()
+        row = QtWidgets.QHBoxLayout(holder)
+        row.setContentsMargins(22, 4, 10, 4)
+        row.addWidget(QtWidgets.QLabel("Image plane opacity"))
+        slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        slider.setRange(0, 100)
+        slider.setFixedWidth(120)
+        slider.setValue(int(round(100 * self.plane_alpha)))
+        value = QtWidgets.QLabel("%d%%" % slider.value())
+        row.addWidget(slider)
+        row.addWidget(value)
+        slider.valueChanged.connect(lambda v: (value.setText("%d%%" % v), self.set_plane_alpha(v / 100.0)))
+        slider.sliderReleased.connect(self._save_prefs)
+        action = QtWidgets.QWidgetAction(menu)
+        action.setDefaultWidget(holder)
+        menu.addAction(action)
+
+    def set_plane_alpha(self, alpha):
+        """The image plane's opacity (0-1): remembered, and set on the plane
+        in your Maya now if it's there. The cache shows it after Refresh."""
+        self.plane_alpha = min(1.0, max(0.0, float(alpha)))
+        self.prefs["plane_alpha"] = self.plane_alpha
+        if self.plane_mode is not None:
+            self.send_cmd("image_plane_alpha", alpha=self.plane_alpha)
 
     def remove_image_plane(self):
         self.send_cmd("image_plane_remove")
@@ -831,6 +862,7 @@ class Continuity(object):
         folder = profile.get("drawings_folder")
         if folder and getattr(self, "drawer", None) is not None:
             self.drawer.root = profile.drawings_root(self.cfg.get("original_scene"))
+            self.drawer._roots = {}          # b8: the other shots' folders, worked out again
         self.browser.add_card(ShotCard(self, self.live_shot, live=True))
         self.browser.info.setText("%s · finding shots..." % self.shot_ids[2])
         self.b_cont.setToolTip("Play the staged shots before and after yours")

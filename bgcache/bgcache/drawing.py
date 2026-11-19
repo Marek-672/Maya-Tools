@@ -81,12 +81,16 @@ def new_layer(name, lid):
 
 def held_key(frames, frame, hold=True):
     """The drawn frame shown at `frame`: itself, or with hold the last drawn
-    frame before it. None when nothing shows. `frames` keys are strings."""
+    frame before it. None when nothing shows. `frames` keys are strings.
+    hold can also be a frame number (0.9.0b10): hold, but only drawings from
+    that frame on, so a drawing outside the frames you have (before the
+    cut, say) never carries into them."""
     if str(frame) in frames:
         return int(frame)
-    if not hold or not frames:
+    if hold is False or hold is None or not frames:
         return None
-    earlier = [int(k) for k in frames if int(k) <= frame]
+    first = None if hold is True else int(hold)
+    earlier = [int(k) for k in frames if int(k) <= frame and (first is None or int(k) >= first)]
     return max(earlier) if earlier else None
 
 
@@ -96,6 +100,21 @@ def neighbour_keys(frames, key):
     before = [k for k in keys if k < key]
     after = [k for k in keys if k > key]
     return (before[-1] if before else None), (after[0] if after else None)
+
+
+ONION_MAX = 5          # the most drawings shown before, or after (0.9.0b12)
+
+
+def onion_keys(frames, key, before=1, after=1, first=None, last=None):
+    """Drawn frames for onion skin around `key`: (the `before` drawings
+    before it, the `after` drawings after it), each nearest first. Counted in
+    drawings, not frames. first / last: the frames you have of the shot; a
+    drawing outside them isn't shown as a ghost (like Hold since b10)."""
+    keys = sorted(int(k) for k in frames
+                  if (first is None or int(k) >= first) and (last is None or int(k) <= last))
+    earlier = [k for k in keys if k < key]
+    later = [k for k in keys if k > key]
+    return earlier[::-1][:max(0, int(before))], later[:max(0, int(after))]
 
 
 def _dist2_point_segment(px, py, ax, ay, bx, by):
