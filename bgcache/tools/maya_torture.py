@@ -357,6 +357,40 @@ def hide_and_show_an_object_then_refresh():
 
 
 @scenario()
+def ctrl_h_and_shift_h_are_followed_without_refresh():
+    said = []
+    for what, act in (("hidden", lambda: (cmds.select("prop"), cmds.hide("prop"))),
+                      ("shown", lambda: (cmds.showHidden("prop"), cmds.select(clear=True)))):
+        main(lambda: cmds.select("prop"))
+        time.sleep(0.6)
+        n = len(log_lines())
+        main(act)
+        took = wait_log("message statics", 8, n)
+        assert took is not None, "%s with the hotkey's command: nothing reached the background Maya" % what
+        said.append("%s followed in %ss" % (what, took))
+        wait_clean(60)
+    return "; ".join(said)
+
+
+@scenario()
+def a_display_layer_switched_off_and_on_is_followed_without_refresh():
+    main(lambda: (cmds.select("prop"), cmds.createDisplayLayer(name="tortureLayer", noRecurse=True), cmds.select(clear=True)))
+    main(k().refresh_display)                 # a layer made after Start: Refresh sends it once
+    time.sleep(2.5)
+    wait_clean(60)
+    said = []
+    for on in (False, True):
+        n = len(log_lines())
+        main(lambda: cmds.setAttr("tortureLayer.visibility", on))
+        took = wait_log("message statics", 8, n)
+        assert took is not None, "layer visibility %s: nothing reached the background Maya" % on
+        said.append("%s in %ss" % ("on" if on else "off", took))
+        wait_clean(60)
+    main(lambda: cmds.delete("tortureLayer"))
+    return "layer " + ", ".join(said)
+
+
+@scenario()
 def shrink_and_grow_the_playback_range():
     main(lambda: cmds.playbackOptions(minTime=1006, maxTime=1015))
     time.sleep(1.5)
@@ -637,6 +671,59 @@ def file_new_while_running():
     assert wait(lambda: proc.poll() is not None, 30) is not None, "the background Maya was left running after File > New"
     wait(lambda: player.poll() is not None, 30)
     return "stopped by itself; player %s" % ("closed" if player.poll() is not None else "LEFT OPEN")
+
+
+def make_layer(name):
+    cmds.select("hero")
+    cmds.animLayer(name, addSelectedObjects=True)
+    cmds.setKeyframe("hero", attribute="translateY", animLayer=name, time=FIRST, value=0)
+    cmds.setKeyframe("hero", attribute="translateY", animLayer=name, time=1012, value=5)
+    cmds.select(clear=True)
+
+
+def skipped_curves(after):
+    return [l for l in log_lines()[after:] if "no curve for" in l]
+
+
+@scenario(fresh=True)
+def an_animation_layer_that_was_there_at_start():
+    main(build_scene)
+    main(lambda: make_layer("tortureLayerA"))
+    start()
+    n = len(log_lines())
+    took = redone(lambda: cmds.setKeyframe("hero", attribute="translateY", animLayer="tortureLayerA",
+                                           time=1012, value=9), 1012)
+    assert not skipped_curves(n), "the layer's key was skipped: %s" % skipped_curves(n)[:2]
+    said = ["a key on the layer re-rendered (clean in %ss)" % took]
+    for flag, value in (("mute", True), ("mute", False), ("weight", 0.5)):
+        n = len(log_lines())
+        before = versions().get("1012")
+        main(lambda: cmds.animLayer("tortureLayerA", edit=True, **{flag: value}))
+        assert wait_log("animation layer tortureLayerA: ", 8, n) is not None, "%s %s was not followed" % (flag, value)
+        assert wait(lambda: versions().get("1012") != before, 30) is not None, "no re-render after %s %s" % (flag, value)
+        wait_clean(90)
+        said.append("%s %s followed" % (flag, value))
+    return "; ".join(said)
+
+
+@scenario()
+def an_animation_layer_made_after_start_asks_for_a_reload():
+    main(lambda: make_layer("tortureLayerB"))
+    assert wait(lambda: "animation layer" in (read("refresh_note").get("note") or ""), 8) is not None, \
+        "no note next to Refresh after making a layer: %r" % read("refresh_note")
+    main(k().refresh_display)
+    assert wait(lambda: (read("refresh_note").get("ask") or {}).get("changes"), 8) is not None, "Refresh did not ask to reload"
+    asked = read("refresh_note")["ask"]["changes"]
+    assert any("animation layer" in c for c in asked), "asked about %s" % asked
+    n = len(log_lines())
+    main(k().reload_scene)
+    assert wait_log("scene reloaded", 90, n) is not None, "the reload did not finish"
+    wait_clean(120)
+    n = len(log_lines())
+    took = redone(lambda: cmds.setKeyframe("hero", attribute="translateY", animLayer="tortureLayerB",
+                                           time=1012, value=-6), 1012)
+    assert not skipped_curves(n), "after the reload the layer's key was still skipped"
+    return "asked about %s; after the reload its keys follow (clean in %ss)" % (", ".join(asked), took)
 
 
 @scenario(fresh=True)

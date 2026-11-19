@@ -995,6 +995,8 @@ class Worker(AssetsWorkerMixin):
                 self.sync_image_planes(msg["image_planes"])
             if "gpu" in msg:
                 self._set_gpu(bool(msg["gpu"]), msg.get("gpu_reason") or "")
+        elif op == "anim_layers":            # b25: mute / solo / weight / mode, as in your Maya
+            self.set_anim_layers(msg.get("layers") or {})
         elif op == "image_planes":
             self.sync_image_planes(msg.get("planes") or [])
         elif op == "curve_shapes":
@@ -1006,6 +1008,24 @@ class Worker(AssetsWorkerMixin):
         elif op == "delete_curves":          # many at once (reference unloaded, etc.)
             for item in msg.get("curves") or []:
                 self.delete_curve(item)
+
+    def set_anim_layers(self, layers):
+        for layer, vals in sorted(layers.items()):
+            if not cmds.objExists(layer):
+                log("animation layer %s isn't in this copy of the scene: use Reload scene" % layer)
+                continue
+            done = []
+            for flag in ("override", "passthrough", "mute", "solo", "weight"):
+                value = vals.get(flag)
+                if value is None:
+                    continue
+                try:
+                    cmds.animLayer(layer, edit=True, **{flag: value})
+                    done.append("%s %s" % (flag, value))
+                except Exception:
+                    self.last_error = traceback.format_exc()
+                    log("ERROR setting %s on animation layer %s:\n%s" % (flag, layer, self.last_error))
+            log("animation layer %s: %s" % (layer, ", ".join(done)))
 
     def _time_edit(self, msg, ranges, t_apply):
         """Start timing a curve edit for worker.log's speed line ("edit

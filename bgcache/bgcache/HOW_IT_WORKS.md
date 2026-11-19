@@ -46,6 +46,8 @@ All three run on the same machine as the same user. The hidden Maya and the play
 | `maya_time.json` | your Maya | player | Your Maya's current frame, plus "bring the player to the front" | When your time changes (at most 4 times a second while your Maya plays, then the frame it stops on) |
 | `maya_range.json` | your Maya | player | Your playback range (0.9.0b8): shown on the player's bar; with Sync on it is the player's focus. The other way, with Sync on, the player's focus (in `cameras.json`) sets your playback range | When your range changes |
 | `player_close.json` (+ `.answer`) | your Maya | player | Stop, opening another scene or quitting Maya (0.9.0b8): the player asks to save unsaved drawings, answers "asking" then "closing", and closes; your Maya waits for that | When bgcache stops from your Maya |
+| `refresh_note.json` | your Maya | player | 0.9.0b21: the orange note next to Refresh ("Scene changed: a reference was added") and the question a Refresh raises when the scene needs reloading (what changed, how long the last reload took) | When Maya reports a change; at each Refresh |
+| `cache_lists.json` | your Maya | player | 0.9.0b22: what Show selected and Hide selected are holding, for the lists under the buttons' arrows. Session only: never written to your preferences | When you use them |
 | `player_cmd.json` (+ `.done`) | player | your Maya, checked every 150 ms; it writes `.done` back | Buttons that need your Maya: Refresh, Reload scene, Re-render all, Push selected, next/previous key, Stop, Restart, Self-test, Update | When you press them |
 
 The hidden Maya checks its inbox every 50 ms (every 100 ms after 2 s with nothing to do). Its whole loop runs in Maya's idle time: read messages, apply them, playblast the next batch, write the status.
@@ -59,7 +61,11 @@ All of this is set up at Start and removed at Stop:
 - `scriptJob`s on `Undo`, `Redo`, `timeChanged`, `SelectionChanged` and `deleteAll`, plus `conditionFalse` on `playingBack` (the frame your playback stops on).
 - `MNodeMessage.addAttributeChangedCallback` on **path curves** only: curve shapes you edit by hand that drive a motion path, spline IK, wire or similar (usually a handful). Moving their CVs sends the new positions.
 - `MSceneMessage` `kBeforeOpen`, `kBeforeNew` and `kMayaExiting`: bgcache stops before the scene changes. `kBeforeSave` is used only while the player's reference image plane is in your scene, to offer to remove it before you save.
+- `MSceneMessage` after a reference is added, removed, loaded or unloaded and after an import, and `addNodeAddedCallback` on `constraint` and `animLayer` (0.9.0b21, b25): bgcache only notes it, and the player shows the orange note. Nothing is reloaded by itself.
 - Three Qt timers: a short "flush" after edits, a 1 s status check, and a 150 ms check of the player's frame and commands.
+- From that 150 ms check, once a second and never while a mouse button is down: cameras you moved without keys; the visibility of the studio's asset groups, of anything you've selected (Ctrl+H, Shift+H) and of display layers; mute, solo, weight and mode of animation layers (0.9.0b12 to b25). What changed is sent and the shot re-renders.
+
+**Animation layers:** a layer that was in the scene at Start is in the hidden Maya's copy too, so its keys travel like any others. A layer made later rewires the controls it holds; the copy doesn't have that wiring, so Refresh asks to reload the scene first.
 
 What it sends is **data, not scenes**: for each edited curve, its keys, tangents and a few sampled values, plus the frame ranges that changed. Unkeyed values, display layers, hidden or shown objects, viewport settings, image planes and the GPU Override setting go only at Start and when you press **Refresh**. **Reload scene** exports a fresh copy and reopens it in the hidden Maya.
 
@@ -67,7 +73,7 @@ What it sends is **data, not scenes**: for each edited curve, its keys, tangents
 
 - **Your file is never saved by bgcache.** If your scene has unsaved changes, your Maya exports a private copy to the session folder. Otherwise the hidden Maya opens your file as it is, and never saves it.
 - **The hidden Maya never saves anything.** It marks its scene unchanged and quits without saving, so it can never ask "Save changes?".
-- **It has its own preferences folder.** It runs with its own `MAYA_APP_DIR` (`~/.bgcache/maya_app`), a copy of yours made once. It still finds your scripts, modules and plug-ins, but it can't change your preferences. If it ever found itself using yours, it closes at once without saving anything.
+- **It has its own preferences folder, and its own clean settings** (0.9.0b19): `MAYA_APP_DIR` is `~/.bgcache/maya_clean`, with Maya's defaults plus only your settings that decide the picture (viewport and colour management), written at every Start. Your panels, layouts and start-up scripts never open there, and it can't change your preferences. It still finds your scripts, modules and plug-ins. A studio can ask for the old way (a cleaned copy of your preferences) with `"background_prefs": "copy"` in the profile.
 - **It starts light:** without auto-loaded plug-ins. It loads only the plug-ins your scene's nodes use, plus the plug-in for your viewport renderer (for example the studioViewport2).
 - Tools in the profile's `skip_in_background` are left off its paths. Tools in `switch_off_in_background` are switched off inside it only, never in your Maya.
 
@@ -77,6 +83,7 @@ It playblasts off-screen from its own panel. The panel looks through the camera 
 - your viewport's display settings and your renderer, including a studio render override such as the studioViewport2;
 - textures loaded before drawing;
 - no HUD, grid or overlays;
+- what you can see in your Maya, without the groups the profile's `cache_assets` names as environment, and without what you hid with **Hide selected** (hidden in its own copy only);
 - the camera's full frame, with no overscan and no 2D pan/zoom.
 
 GPU deformers follow your Maya's GPU Override. If they fail there, the hidden Maya switches to the CPU by itself, or your Maya restarts it on the CPU if it got stuck.

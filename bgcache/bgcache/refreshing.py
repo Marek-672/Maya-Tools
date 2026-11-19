@@ -29,7 +29,8 @@ def structure_changes(old, new):
         if names:
             out.append("%s %s" % (plural(len(names), "reference"), what))
     for key, one, many in (("constraints", "constraint", None), ("deformers", "deformer", None),
-                           ("objects", "object", None)):
+                           ("objects", "object", None), ("anim_layers", "animation layer", None),
+                           ("anim_layer_channels", "channel on animation layers", "channels on animation layers")):
         diff = int(new.get(key) or 0) - int(old.get(key) or 0)
         if diff:
             out.append("%s %s" % (plural(abs(diff), one, many), "added" if diff > 0 else "removed"))
@@ -62,6 +63,7 @@ EVENTS = {
     "reference-added": "a reference was added", "reference-removed": "a reference was removed",
     "reference-loaded": "a reference was loaded", "reference-unloaded": "a reference was unloaded",
     "imported": "something was imported", "constraint": "a constraint was made",
+    "anim-layer": "an animation layer was made",
 }
 
 

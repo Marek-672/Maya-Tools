@@ -96,16 +96,26 @@ class EditsMixin(object):
             self._selection_queued = True
             QtCore.QTimer.singleShot(100, self._record_selection)
 
+    @staticmethod
+    def _note_transform(obj, sel, i, selected):
+        try:
+            if obj.hasFn(om.MFn.kTransform):
+                selected.append(sel.getDagPath(i).fullPathName())
+        except Exception as error:       # must never stop the unkeyed values being recorded
+            scene._ignored(error)
+
     def _record_selection(self):
         self._selection_queued = False
         if not self.running:
             return
         sel = om.MGlobal.getActiveSelectionList()
+        selected = []                    # b24: their show / hide is followed (controller_assets)
         for i in range(min(sel.length(), 100)):
             try:
                 obj = sel.getDependNode(i)
                 if obj.hasFn(om.MFn.kDagNode):
                     node = om.MFnDagNode(sel.getDagPath(i)).partialPathName()
+                    self._note_transform(obj, sel, i, selected)
                 else:
                     node = om.MFnDependencyNode(obj).name()
                 fn = om.MFnDependencyNode(obj)
@@ -119,6 +129,8 @@ class EditsMixin(object):
                         continue          # non-numeric attribute: nothing to record
             except Exception as error:
                 scene._ignored(error)
+        if selected:
+            self._note_selected(selected)
 
     def _dirty(self, name, old, new, first, last):
         """(frame ranges to re-render, send the curve?, reason if the whole shot)."""

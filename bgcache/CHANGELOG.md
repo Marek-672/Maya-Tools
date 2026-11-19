@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.9.0 beta 25
+
+- **Animation layers.** Muting, soloing or changing the weight of a layer
+  now updates the player by itself. Making a new layer after Start shows the
+  orange note, and Refresh asks to reload the scene so the layer's keys are
+  followed (before, they were silently missing from the player).
+- **Fixed: the player could stop following your Maya for the rest of a
+  session** (cameras moved without keys, things hidden or shown), with key
+  edits arriving five seconds late, when Maya wrongly believed a mouse
+  button was still held.
+
+## 0.9.0 beta 24
+
+- **Hiding and showing in Maya is followed by itself.** Ctrl+H, Shift+H and
+  switching a display layer now update the player without pressing Refresh.
+
+## 0.9.0 beta 23
+
+- The player's **Show** and **Hide** buttons are now **Show selected** and
+  **Hide selected**, so it's plain they act on what's selected in your Maya.
+
 ## 0.9.0 beta 22
 
 Everything since beta 7 (betas 8 to 21 were test builds and weren't published).
@@ -17,8 +38,8 @@ Everything since beta 7 (betas 8 to 21 were test builds and weren't published).
   defaults plus your graphics and colour settings), not a copy of yours, so
   your panels, layouts and start-up scripts never open in it. No splash, and
   no full-screen window flashing up at Start.
-- **Show and Hide.** Select something in your Maya and press **Hide** to
-  leave it out of the player (a character in your way), or **Show** to bring
+- **Show and Hide.** Select something in your Maya and press **Hide selected** to
+  leave it out of the player (a character in your way), or **Show selected** to bring
   it back. Only the player changes. An arrow beside the button lists what
   you've hidden, so nothing goes missing without an explanation; click a name
   to put it back. It's for the working session only: Stop forgets it.
