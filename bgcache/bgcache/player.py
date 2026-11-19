@@ -348,19 +348,13 @@ class Player(MenusMixin, RangeMixin, ReelMixin, SessionMixin, InputMixin, PaintM
     def _build_menus(self, row):
         """bgcache, View and Help, in the usual order (bgcache is like File)."""
         # -- bgcache (like File): what to send, restart, stop
-        self.b_app, app_menu = self._menu_word(row, "bgcache", "Reload scene, what's in the cache, restart, stop")
+        self.b_app, app_menu = self._menu_word(row, "bgcache", "Reload scene, restart, stop")
         # b21: Push selected is gone (Refresh sends the unkeyed values of what you've selected);
         # Reload scene is here for when you want it without Refresh asking.
         reload_item = app_menu.addAction("Reload scene", self.reload_scene)
         reload_item.setToolTip("Copy your scene to the background Maya again. Refresh asks for this when it sees the "
                                "scene has changed; here for the changes it can't see. Takes about as long as Start.")
-        app_menu.addSeparator()
-        show = app_menu.addAction("Show selected in the cache")
-        show.setToolTip("Draw what's selected in your Maya in the cache, though it's part of the environment")
-        show.triggered.connect(lambda: self._maya_cmd("cache_show_selected", "Show selected: sent to your Maya"))
-        hide = app_menu.addAction("Remove selected from the cache")
-        hide.setToolTip("Leave what's selected in your Maya out of the cache, though you can see it in Maya")
-        hide.triggered.connect(lambda: self._maya_cmd("cache_remove_selected", "Remove selected: sent to your Maya"))
+        # b22: Show and Hide are buttons on the bar now (with their lists).
         if self.has_continuity:
             app_menu.addAction("Set up continuity...", self.open_setup)
         app_menu.addSeparator()
@@ -433,12 +427,61 @@ class Player(MenusMixin, RangeMixin, ReelMixin, SessionMixin, InputMixin, PaintM
         self.refresh_note.setObjectName("refreshNote")
         self.refresh_note.setVisible(False)
         row.addWidget(self.refresh_note)
+        self._build_show_hide(row)
         self.b_pause = _tool("Pause", tip="Pause re-rendering: your edits keep coming in and changed frames "
                                           "stay red. Resume starts again from the frame you're on.")
         self.b_pause.setObjectName("pauseButton")
         self.b_pause.setCheckable(True)
         self.b_pause.clicked.connect(self.set_paused)
         row.addWidget(self.b_pause)
+
+    def _build_show_hide(self, row):
+        """Show and Hide (b22): what's selected in your Maya, in the player
+        only, for this working session. Each gets a drop-down arrow beside it
+        once it has been used, listing what it's holding, so a missing character a day
+        later has an explanation. Clicking a name puts it back."""
+        self.cache_lists = {"shown": [], "hidden": []}
+        self.b_show = _tool("Show", tip="Draw what's selected in your Maya here, though it's part of the "
+                                        "environment or you hid it here. In the player only; forgotten when "
+                                        "you stop bgcache.")
+        self.b_hide = _tool("Hide", tip="Leave what's selected in your Maya out of the player, though you can "
+                                        "see it in Maya. In the player only; forgotten when you stop bgcache.")
+        for button, name, cmd, said, key in (
+                (self.b_show, "showButton", "cache_show_selected", "Show: sent to your Maya", "shown"),
+                (self.b_hide, "hideButton", "cache_remove_selected", "Hide: sent to your Maya", "hidden")):
+            button.setObjectName(name)
+            button.clicked.connect(lambda _=False, c=cmd, m=said: self._maya_cmd(c, m))
+            row.addWidget(button)
+            arrow = _tool("\u25be", tip="What you've %s in the player this session; click a name to put it back"
+                                        % ("shown" if key == "shown" else "hidden"))
+            arrow.setObjectName("cacheListButton")
+            arrow.setPopupMode(QtWidgets.QToolButton.InstantPopup)
+            menu = QtWidgets.QMenu(self)
+            menu.setToolTipsVisible(True)
+            menu.aboutToShow.connect(lambda m=menu, k=key: self._fill_cache_list(m, k))
+            arrow.setMenu(menu)
+            arrow.setVisible(False)
+            button._list_arrow = arrow
+            row.addWidget(arrow)
+
+    def _fill_cache_list(self, menu, key):
+        """The Hidden (or Shown) list under the button's arrow."""
+        from bgcache import assets
+        menu.clear()
+        nodes = list(self.cache_lists.get(key) or [])
+        head = menu.addAction("Hidden in the player" if key == "hidden" else "Shown in the player")
+        head.setEnabled(False)
+        for node in nodes:
+            act = menu.addAction(assets.label(node))
+            act.setToolTip("%s\nClick to put it back to how your Maya has it" % node)
+            act.triggered.connect(lambda _=False, n=node: self._cache_forget([n]))
+        if len(nodes) > 1:
+            menu.addSeparator()
+            menu.addAction("Put all back", lambda: self._cache_forget(nodes))
+
+    def _cache_forget(self, nodes):
+        self.send_cmd("cache_forget", nodes=nodes)
+        self._flash_message("Put back: sent to your Maya")
 
     def _build_reload_question(self):
         """The bar under the toolbar that asks whether to reload the scene

@@ -164,6 +164,24 @@ def redone(action, frame, seconds=40):
     return wait_clean(120)
 
 
+def picture(name):
+    """With PICTURES = True: a grab of the screen, to look at the player."""
+    if not globals().get("PICTURES"):
+        return
+    def grab():
+        try:
+            from PySide6 import QtWidgets
+        except ImportError:
+            from PySide2 import QtWidgets
+        QtWidgets.QApplication.primaryScreen().grabWindow(0).save(os.path.join(HERE, "torture_%s.png" % name))
+    try:
+        main(controller().shelf_click)      # the player to the front
+        time.sleep(2.5)
+        main(grab)
+    except Exception as error:
+        report.setdefault("pictures", []).append("%s: %r" % (name, error))
+
+
 def start(wait_for_clean=True):
     main(controller().shelf_click)
     wait(lambda: getattr(k(), "worker_proc", None) is not None and k().running, 20)
@@ -495,6 +513,38 @@ def remove_and_show_selected_in_the_cache():
     assert wait_log("message assets", 10, n) is not None
     main(lambda: cmds.select(clear=True))
     return "removed, then shown again; clean in %ss" % wait_clean(60)
+
+
+@scenario()
+def hide_in_the_player_lists_it_and_a_click_puts_it_back():
+    lists = lambda: read("cache_lists")
+    n = len(log_lines())
+    main(lambda: (cmds.select("prop"), k().cache_selected(False), cmds.select(clear=True)))
+    assert wait(lambda: lists().get("hidden") == ["|prop"], 8) is not None, "the Hidden list has %r" % lists().get("hidden")
+    assert wait_log("removed: prop", 10, n) is not None
+    picture("hidden_list")
+    n = len(log_lines())
+    main(lambda: k().cache_forget(["|prop"]))
+    assert wait(lambda: lists().get("hidden") == [], 8) is not None, "still listed after putting it back"
+    assert wait_log("message assets", 10, n) is not None
+    return "listed as hidden, then put back; clean in %ss" % wait_clean(60)
+
+
+@scenario()
+def restart_keeps_what_was_hidden_and_stop_forgets_it():
+    main(lambda: (cmds.select("prop"), k().cache_selected(False), cmds.select(clear=True)))
+    assert wait(lambda: read("cache_lists").get("hidden") == ["|prop"], 8) is not None
+    old = k().worker_proc
+    main(controller().shelf_restart)
+    assert wait(lambda: k().running and getattr(k(), "worker_proc", None) not in (None, old), 40) is not None
+    wait_ready()
+    kept = read("cache_lists").get("hidden")
+    assert kept == ["|prop"], "after Restart the Hidden list is %r" % kept
+    stop()
+    start()
+    after = read("cache_lists").get("hidden")
+    assert after == [], "after Stop and Start the Hidden list is %r" % after
+    return "Restart kept it; Stop forgot it"
 
 
 @scenario()

@@ -548,6 +548,8 @@ class Controller(RefreshMixin, GpuRescueMixin, EditsMixin, SyncMixin, RefPlaneMi
     def restart(self):
         """Stop, then start again fresh (the player's bgcache > Restart)."""
         self.trace("restart")
+        spec = self.cfg.get("cache_assets") or {} if getattr(self, "cfg", None) else {}
+        self._carry_assets = {"shown": spec.get("shown"), "removed": spec.get("removed")}   # same working session
         self.stop()
         cmds.evalDeferred(lambda: self.start(**_start_kwargs), lowestPriority=True)
 

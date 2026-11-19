@@ -1,10 +1,10 @@
 # Changelog
 
-## 0.9.0 beta 21
+## 0.9.0 beta 22
 
-Everything since beta 7 (betas 8 to 20 were test builds and weren't published).
+Everything since beta 7 (betas 8 to 21 were test builds and weren't published).
 
-- **One Refresh.** The top bar has Refresh and Pause, nothing else to learn.
+- **One Refresh.** The top bar's cache buttons are down to Refresh and Pause.
   When the player doesn't match your Maya, press Refresh: it sends what's
   different (viewport settings, things shown or hidden, values you changed
   without a key) and says what it sent, or that nothing was different. If
@@ -17,10 +17,11 @@ Everything since beta 7 (betas 8 to 20 were test builds and weren't published).
   defaults plus your graphics and colour settings), not a copy of yours, so
   your panels, layouts and start-up scripts never open in it. No splash, and
   no full-screen window flashing up at Start.
-- **Show or remove things in the cache only:** bgcache menu > **Show
-  selected in the cache** / **Remove selected from the cache**, for looking
-  at a shot without something that's in your way, without hiding it in Maya.
-
+- **Show and Hide.** Select something in your Maya and press **Hide** to
+  leave it out of the player (a character in your way), or **Show** to bring
+  it back. Only the player changes. An arrow beside the button lists what
+  you've hidden, so nothing goes missing without an explanation; click a name
+  to put it back. It's for the working session only: Stop forgets it.
 - **The whole shot in the player, your range first.** The player lays out
   the whole shot (Maya's outer range, the ends of the range slider) and your
   playback range is the **focus**: rendered first and played. Frames not

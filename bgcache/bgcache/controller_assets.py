@@ -31,17 +31,23 @@ class AssetsMixin(object):
     ASSETS_CHECK_S = 1.0           # how often your show / hide of assets is looked at
 
     def assets_config(self):
-        """For the session: the profile's cache_assets, and what you've shown
-        and removed for this scene before."""
+        """For the session: the profile's cache_assets. What you Show and
+        Hide in the player is for the working session only (b22, Marek):
+        Stop forgets it, and the next Start shows the shot as it is. Restart
+        carries it over (it's the same working session)."""
         root, groups = assets.settings(profile.get("cache_assets"))
-        kept = (common.load_prefs().get("cache_assets") or {}).get(self._assets_key()) or {}
+        carried, self._carry_assets = getattr(self, "_carry_assets", None) or {}, None
         return {"root": root, "environment": groups,
-                "shown": list(kept.get("shown") or []), "removed": list(kept.get("removed") or [])}
+                "shown": list(carried.get("shown") or []), "removed": list(carried.get("removed") or [])}
 
-    def _assets_key(self):
-        """What you showed and removed is kept per scene file name (any version folder)."""
-        name = cmds.file(query=True, sceneName=True) or ""
-        return name.replace("\\", "/").split("/")[-1] or "untitled"
+    def _write_cache_lists(self):
+        """For the player's Show and Hide lists."""
+        spec = self.cfg.get("cache_assets") or {}
+        try:
+            common.write_json_atomic(common.paths(self.session)["cache_lists"], {
+                "shown": list(spec.get("shown") or []), "hidden": list(spec.get("removed") or []), "ts": time.time()})
+        except (IOError, OSError) as error:
+            scene._ignored(error)
 
     def _asset_roots(self):
         root = (self.cfg.get("cache_assets") or {}).get("root")
@@ -56,6 +62,7 @@ class AssetsMixin(object):
     def _watch_assets(self):
         """Start (and Reload scene): note how the watched assets are shown now."""
         spec = self.cfg.get("cache_assets") or {}
+        self._write_cache_lists()
         roots = self._asset_roots()
         self._asset_nodes, self._asset_seen, self._asset_checked = [], {}, time.time()
         if not roots:
@@ -103,25 +110,38 @@ class AssetsMixin(object):
         print("bgcache: %d asset(s) shown or hidden in your Maya: sent, re-rendering" % len(changed))
 
     def cache_selected(self, show):
-        """The player's Show selected in the cache / Remove selected from the cache."""
-        self.trace("cache-selected", "show" if show else "remove")
+        """The player's Show and Hide buttons: what's selected in your Maya."""
+        self.trace("cache-selected", "show" if show else "hide")
         if not self.running:
             return
         nodes = selected_transforms()
         if not nodes:
-            self._tell_player("Select something in your Maya first, then %s"
-                              % ("Show selected in the cache" if show else "Remove selected from the cache"))
+            self._tell_player("Select something in your Maya first, then press %s" % ("Show" if show else "Hide"))
             return
-        spec = dict(self.cfg.get("cache_assets") or {})
+        spec = self.cfg.get("cache_assets") or {}
         shown, removed = (assets.show if show else assets.remove)(spec.get("shown") or [], spec.get("removed") or [], nodes)
+        self._set_cache_lists(shown, removed)
+        self._tell_player("%s in the player: %s" % ("Shown" if show else "Hidden",
+                                                    ", ".join(assets.label(n) for n in nodes[:4])
+                                                    + (" and %d more" % (len(nodes) - 4) if len(nodes) > 4 else "")))
+
+    def cache_forget(self, nodes=None):
+        """A name clicked in the player's Shown or Hidden list (None: all of
+        them): it goes back to how your Maya has it."""
+        self.trace("cache-forget", "all" if nodes is None else "%d" % len(nodes))
+        if not self.running:
+            return
+        spec = self.cfg.get("cache_assets") or {}
+        shown, removed = assets.forget(spec.get("shown") or [], spec.get("removed") or [], nodes)
+        self._set_cache_lists(shown, removed)
+        self._tell_player("Back to how your Maya has it: %s" % (
+            "everything" if nodes is None else ", ".join(assets.label(n) for n in nodes[:4])))
+
+    def _set_cache_lists(self, shown, removed):
+        spec = dict(self.cfg.get("cache_assets") or {})
         spec["shown"], spec["removed"] = shown, removed
         self.cfg["cache_assets"] = spec
         common.write_json_atomic(common.paths(self.session)["config"], self.cfg)
-        prefs = common.load_prefs()
-        prefs.setdefault("cache_assets", {})[self._assets_key()] = {"shown": shown, "removed": removed}
-        common.save_prefs(prefs)
+        self._write_cache_lists()
         common.post_message(self.session, {"op": "assets", "shown": shown, "removed": removed,
                                            "ranges": [[self.cfg["start"], self.cfg["end"]]]})
-        self._tell_player("%s the cache: %s" % ("Shown in" if show else "Removed from",
-                                                ", ".join(n.split("|")[-1] for n in nodes[:4])
-                                                + (" and %d more" % (len(nodes) - 4) if len(nodes) > 4 else "")))

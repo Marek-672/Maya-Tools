@@ -200,6 +200,24 @@ class SessionMixin(object):
         if self._status_changed():
             self._poll()
 
+    def _check_cache_lists(self):
+        """b22: what Show and Hide are holding. A button with something in its
+        list gets a drop-down arrow beside it, with the count."""
+        path = self.p.get("cache_lists")
+        try:
+            mtime = os.path.getmtime(path)
+        except (OSError, TypeError):
+            return
+        if mtime == getattr(self, "_cache_lists_mtime", None):
+            return
+        self._cache_lists_mtime = mtime
+        st = common.read_json(path) or {}
+        self.cache_lists = {"shown": list(st.get("shown") or []), "hidden": list(st.get("hidden") or [])}
+        for button, key in ((self.b_show, "shown"), (self.b_hide, "hidden")):
+            count = len(self.cache_lists[key])
+            button._list_arrow.setText("%d \u25be" % count)
+            button._list_arrow.setVisible(bool(count))
+
     def _check_refresh_note(self):
         """b21: your Maya says the scene has changed (the orange note next to
         Refresh), or a Refresh found the scene needs reloading (the question)."""
@@ -244,6 +262,7 @@ class SessionMixin(object):
         self._status_changed()          # note the version we're about to read
         self._check_config()
         self._check_refresh_note()
+        self._check_cache_lists()
         st = common.read_json(self.p["status"])
         if st:
             self.state = st.get("state", "")

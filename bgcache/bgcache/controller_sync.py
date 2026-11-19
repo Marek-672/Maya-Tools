@@ -175,6 +175,8 @@ class SyncMixin(object):
                 self.push_selected()
             elif cmd in ("cache_show_selected", "cache_remove_selected"):
                 self.cache_selected(cmd == "cache_show_selected")
+            elif cmd == "cache_forget":
+                self.cache_forget(st.get("nodes"))
             elif cmd == "reload":
                 self.reload_scene()
             elif cmd == "rerender":

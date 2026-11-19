@@ -40,6 +40,7 @@ QToolButton:disabled { color: #6a6a6a; }
 QToolButton::menu-indicator { image: none; }
 QToolButton#drawButton:checked { background: #b8662a; border-color: #e08a45; color: #fff4e8; font-weight: bold; }
 QToolButton#refreshButton[stale="true"] { background: #5a3a1c; border-color: #f0a868; color: #ffffff; font-weight: bold; }
+QToolButton#cacheListButton { background: #5a3a1c; border-color: #f0a868; color: #ffffff; padding: 3px 6px; }
 QLabel#refreshNote { color: #f5c99a; font-size: 12px; padding: 0 6px; }
 QFrame#reloadQuestion { background: #3a2c1e; border-bottom: 1px solid #b8662a; }
 QLabel#reloadTitle { color: #ffffff; font-weight: bold; font-size: 13px; }

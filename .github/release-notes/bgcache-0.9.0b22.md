@@ -1,10 +1,10 @@
-**BGCache 0.9.0 beta 21.** Live playback for heavy Maya shots, while you keep animating. Maya 2024 or later.
+**BGCache 0.9.0 beta 22.** Live playback for heavy Maya shots, while you keep animating. Maya 2024 or later.
 
-The first release since beta 7 (betas 8 to 20 were test builds).
+The first release since beta 7 (betas 8 to 21 were test builds).
 
 ### New
-- **One Refresh.** The top bar is now just Refresh and Pause. When the player doesn't match your Maya, press Refresh: it sends what's different and says what it sent. If the scene itself changed (a reference, an import, a constraint), an orange note shows next to Refresh and it asks before reloading: **Reload scene** or **Not now**.
-- **Show or remove things in the cache only:** bgcache menu > **Show selected in the cache** / **Remove selected from the cache**.
+- **One Refresh.** The cache buttons are down to Refresh and Pause. When the player doesn't match your Maya, press Refresh: it sends what's different and says what it sent. If the scene itself changed (a reference, an import, a constraint), an orange note shows next to Refresh and it asks before reloading: **Reload scene** or **Not now**.
+- **Show and Hide.** Select something in your Maya and press **Hide** to leave it out of the player (a character in your way), or **Show** to bring it back. Only the player changes. An arrow beside the button lists what you've hidden; click a name to put it back. For the working session only: Stop forgets it.
 - **The whole shot in the player, your range first.** The player lays out the whole shot, and your Maya playback range is the **focus**: rendered first, and played. Frames not rendered yet are hatched.
 - **Sync with Maya's range.** With **Sync** on, the focus and Maya's playback range are the same thing, both ways. With it off they're separate, a blue line shows Maya's range, and **Match Maya** copies it once.
 - **Cameras you move without keys update by themselves:** tumble a follow camera or change a focal length, and the player re-renders a moment after you stop.
@@ -27,9 +27,9 @@ Click a file to download it (they're also under **Assets** at the bottom of this
 
 | Your system | Simple (cache, player, drawing) | Full (+ continuity) |
 |---|---|---|
-| Windows | [bgcache-0.9.0b21-windows-simple.zip](https://github.com/Marek-672/Maya-Tools/releases/download/bgcache-v0.9.0b21/bgcache-0.9.0b21-windows-simple.zip) | [bgcache-0.9.0b21-windows-full.zip](https://github.com/Marek-672/Maya-Tools/releases/download/bgcache-v0.9.0b21/bgcache-0.9.0b21-windows-full.zip) |
-| macOS (Apple Silicon; the least tested so far) | [bgcache-0.9.0b21-macos-simple.zip](https://github.com/Marek-672/Maya-Tools/releases/download/bgcache-v0.9.0b21/bgcache-0.9.0b21-macos-simple.zip) | [bgcache-0.9.0b21-macos-full.zip](https://github.com/Marek-672/Maya-Tools/releases/download/bgcache-v0.9.0b21/bgcache-0.9.0b21-macos-full.zip) |
-| Linux | [bgcache-0.9.0b21-linux-simple.zip](https://github.com/Marek-672/Maya-Tools/releases/download/bgcache-v0.9.0b21/bgcache-0.9.0b21-linux-simple.zip) | [bgcache-0.9.0b21-linux-full.zip](https://github.com/Marek-672/Maya-Tools/releases/download/bgcache-v0.9.0b21/bgcache-0.9.0b21-linux-full.zip) |
+| Windows | [bgcache-0.9.0b22-windows-simple.zip](https://github.com/Marek-672/Maya-Tools/releases/download/bgcache-v0.9.0b22/bgcache-0.9.0b22-windows-simple.zip) | [bgcache-0.9.0b22-windows-full.zip](https://github.com/Marek-672/Maya-Tools/releases/download/bgcache-v0.9.0b22/bgcache-0.9.0b22-windows-full.zip) |
+| macOS (Apple Silicon; the least tested so far) | [bgcache-0.9.0b22-macos-simple.zip](https://github.com/Marek-672/Maya-Tools/releases/download/bgcache-v0.9.0b22/bgcache-0.9.0b22-macos-simple.zip) | [bgcache-0.9.0b22-macos-full.zip](https://github.com/Marek-672/Maya-Tools/releases/download/bgcache-v0.9.0b22/bgcache-0.9.0b22-macos-full.zip) |
+| Linux | [bgcache-0.9.0b22-linux-simple.zip](https://github.com/Marek-672/Maya-Tools/releases/download/bgcache-v0.9.0b22/bgcache-0.9.0b22-linux-simple.zip) | [bgcache-0.9.0b22-linux-full.zip](https://github.com/Marek-672/Maya-Tools/releases/download/bgcache-v0.9.0b22/bgcache-0.9.0b22-linux-full.zip) |
 
 ### Install or update
 - **Already have BGCache:** in the player, **Help > Check for updates** offers the newest of your edition. To move from Simple to Full, drag in the Full zip's installer.

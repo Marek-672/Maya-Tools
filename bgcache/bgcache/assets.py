@@ -84,6 +84,21 @@ def remove(shown, removed, nodes):
     return shown, removed + [n for n in nodes if n not in removed]
 
 
+def forget(shown, removed, nodes=None):
+    """Take things off the Shown and Hidden lists (b22: clicking a name in
+    the player's lists): they go back to how your Maya has them. nodes None:
+    everything."""
+    if nodes is None:
+        return [], []
+    nodes = [n for n in nodes if n]
+    return [s for s in shown if s not in nodes], [r for r in removed if r not in nodes]
+
+
+def label(node):
+    """The short name shown in the player's lists."""
+    return node.split("|")[-1]
+
+
 def watched(roots, env_groups, children, depth=3):
     """The transforms whose show / hide is followed without Refresh: the
     asset groups and what's just under them (not inside the environment, not

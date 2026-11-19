@@ -53,6 +53,6 @@ w, c, p = src("worker.py"), src("controller_sync.py"), src("player.py")
 assert "self.apply_assets()" in w and 'op == "assets"' in w and "self.note_visibility(plug, value)" in w
 assert "bool(seen.get(name)) if by_group else shown" in w
 assert "self._send_shown_hidden()" in c and '"cache_show_selected", "cache_remove_selected"' in c
-assert '"Show selected in the cache"' in p and '"Remove selected from the cache"' in p
+assert '"cache_show_selected"' in p and '"cache_remove_selected"' in p     # b22: buttons on the bar
 print("ok: wired: the background Maya hides the groups and lets your viewport's plug-in shapes through; your Maya "
       "follows show / hide; the player has Show selected in the cache and Remove selected from the cache")
