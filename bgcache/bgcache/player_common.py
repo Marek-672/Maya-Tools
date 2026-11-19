@@ -39,6 +39,13 @@ QMenu::item:disabled { color: #8a8d93; }
 QToolButton:disabled { color: #6a6a6a; }
 QToolButton::menu-indicator { image: none; }
 QToolButton#drawButton:checked { background: #b8662a; border-color: #e08a45; color: #fff4e8; font-weight: bold; }
+QToolButton#refreshButton[stale="true"] { background: #5a3a1c; border-color: #f0a868; color: #ffffff; font-weight: bold; }
+QLabel#refreshNote { color: #f5c99a; font-size: 12px; padding: 0 6px; }
+QFrame#reloadQuestion { background: #3a2c1e; border-bottom: 1px solid #b8662a; }
+QLabel#reloadTitle { color: #ffffff; font-weight: bold; font-size: 13px; }
+QLabel#reloadText { color: #f0dcc6; font-size: 12px; }
+QToolButton#reloadYes { background: #b8662a; border: 1px solid #e08a45; color: #ffffff; font-weight: bold; padding: 6px 12px; }
+QToolButton#reloadYes:hover { background: #c9733a; }
 QToolButton#pauseButton:checked { background: #7a5a1e; border-color: #d9a441; color: #fff4dc; font-weight: bold; }
 QPushButton { color: #cfcfcf; background: #343434; border: 1px solid #4a4a4a;
               border-radius: 3px; font-size: 11px; padding: 2px 6px; }

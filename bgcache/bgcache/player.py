@@ -305,6 +305,7 @@ class Player(MenusMixin, RangeMixin, ReelMixin, SessionMixin, InputMixin, PaintM
         lay.setContentsMargins(0, 0, 0, 0)
         lay.setSpacing(0)
         lay.addWidget(self._build_toolbar())
+        lay.addWidget(self._build_reload_question())      # b21: shown when Refresh finds the scene changed
         self._continuity_widget(lay)         # continuity shot strip (add-on)
         self._build_picture(lay)
         lay.addWidget(self._build_transport())
@@ -347,10 +348,19 @@ class Player(MenusMixin, RangeMixin, ReelMixin, SessionMixin, InputMixin, PaintM
     def _build_menus(self, row):
         """bgcache, View and Help, in the usual order (bgcache is like File)."""
         # -- bgcache (like File): what to send, restart, stop
-        self.b_app, app_menu = self._menu_word(row, "bgcache", "Push selected, restart, stop")
-        self.b_push = app_menu.addAction("Push selected")
-        self.b_push.setToolTip("Send the unkeyed values of what's selected in your Maya")
-        self.b_push.triggered.connect(lambda: self._maya_cmd("push_selected", "Push selected sent to your Maya"))
+        self.b_app, app_menu = self._menu_word(row, "bgcache", "Reload scene, what's in the cache, restart, stop")
+        # b21: Push selected is gone (Refresh sends the unkeyed values of what you've selected);
+        # Reload scene is here for when you want it without Refresh asking.
+        reload_item = app_menu.addAction("Reload scene", self.reload_scene)
+        reload_item.setToolTip("Copy your scene to the background Maya again. Refresh asks for this when it sees the "
+                               "scene has changed; here for the changes it can't see. Takes about as long as Start.")
+        app_menu.addSeparator()
+        show = app_menu.addAction("Show selected in the cache")
+        show.setToolTip("Draw what's selected in your Maya in the cache, though it's part of the environment")
+        show.triggered.connect(lambda: self._maya_cmd("cache_show_selected", "Show selected: sent to your Maya"))
+        hide = app_menu.addAction("Remove selected from the cache")
+        hide.setToolTip("Leave what's selected in your Maya out of the cache, though you can see it in Maya")
+        hide.triggered.connect(lambda: self._maya_cmd("cache_remove_selected", "Remove selected: sent to your Maya"))
         if self.has_continuity:
             app_menu.addAction("Set up continuity...", self.open_setup)
         app_menu.addSeparator()
@@ -382,6 +392,8 @@ class Player(MenusMixin, RangeMixin, ReelMixin, SessionMixin, InputMixin, PaintM
         help_menu.addAction("Self-test", lambda: self._maya_cmd(
             "selftest", "Self-test running: the report prints in your Maya's Script Editor in about a minute"))
         help_menu.addAction("Report a problem...", self.report_problem)
+        rerender = help_menu.addAction("Re-render all", lambda: self._maya_cmd("rerender", "Re-rendering all frames"))
+        rerender.setToolTip("Troubleshooting: redo every frame of the cache")
         self.help_menu = help_menu
         self._update_item = help_menu.addAction("Check for updates", self.check_for_update)
         self._update_item.setVisible(bool(self._update_source()))
@@ -408,24 +420,54 @@ class Player(MenusMixin, RangeMixin, ReelMixin, SessionMixin, InputMixin, PaintM
         row.addWidget(self.b_draw)
 
     def _build_cache_buttons(self, row):
-        """Refresh, Reload scene and Re-render all together, then Pause."""
-        self.b_refresh = _tool("Refresh", tip="Send your viewport settings, hidden/shown objects, display "
-                                              "layers, image planes and GPU Override from your Maya, and re-render")
+        """Refresh (b21: the one button; Reload scene is in the bgcache menu,
+        Re-render all in Help) with its orange note, then Pause."""
+        self.b_refresh = _tool("Refresh", tip="Press when the player doesn't match your Maya: sends your viewport "
+                                              "settings, layers, shown and hidden objects, unkeyed values on what "
+                                              "you've selected and image planes, and asks to reload the scene if "
+                                              "it has changed")
+        self.b_refresh.setObjectName("refreshButton")
         self.b_refresh.clicked.connect(lambda: self._maya_cmd("refresh", "Refresh sent to your Maya"))
-        self.b_reload = _tool("Reload scene", tip="Copy your scene to the background Maya again: after adding "
-                                                  "characters, props, references or cameras, or changing the "
-                                                  "frame range or sound. Takes about as long as Start.")
-        self.b_reload.clicked.connect(self.reload_scene)
-        self.b_rerender = _tool("Re-render all", tip="Redo every frame of the cache (if anything looks out of date)")
-        self.b_rerender.clicked.connect(lambda: self._maya_cmd("rerender", "Re-rendering all frames"))
-        for b in (self.b_refresh, self.b_reload, self.b_rerender):
-            row.addWidget(b)
+        row.addWidget(self.b_refresh)
+        self.refresh_note = QtWidgets.QLabel("")
+        self.refresh_note.setObjectName("refreshNote")
+        self.refresh_note.setVisible(False)
+        row.addWidget(self.refresh_note)
         self.b_pause = _tool("Pause", tip="Pause re-rendering: your edits keep coming in and changed frames "
                                           "stay red. Resume starts again from the frame you're on.")
         self.b_pause.setObjectName("pauseButton")
         self.b_pause.setCheckable(True)
         self.b_pause.clicked.connect(self.set_paused)
         row.addWidget(self.b_pause)
+
+    def _build_reload_question(self):
+        """The bar under the toolbar that asks whether to reload the scene
+        (b21). In the window, not a dialog: you can keep playing meanwhile."""
+        bar = QtWidgets.QFrame()
+        bar.setObjectName("reloadQuestion")
+        row = QtWidgets.QHBoxLayout(bar)
+        row.setContentsMargins(14, 10, 14, 10)
+        row.setSpacing(12)
+        words = QtWidgets.QVBoxLayout()
+        words.setSpacing(2)
+        self.ask_title, self.ask_text = QtWidgets.QLabel(""), QtWidgets.QLabel("")
+        self.ask_title.setObjectName("reloadTitle")
+        self.ask_text.setObjectName("reloadText")
+        self.ask_text.setWordWrap(True)
+        words.addWidget(self.ask_title)
+        words.addWidget(self.ask_text)
+        row.addLayout(words, 1)
+        yes = _tool("Reload scene", tip="Copy your scene to the background Maya again and re-render")
+        yes.setObjectName("reloadYes")
+        no = _tool("Not now", tip="Keep the cache as it is. The note next to Refresh stays; reload later from "
+                                  "the bgcache menu")
+        yes.clicked.connect(lambda: self.answer_reload(True))
+        no.clicked.connect(lambda: self.answer_reload(False))
+        row.addWidget(yes)
+        row.addWidget(no)
+        bar.setVisible(False)
+        self.reload_question = bar
+        return bar
 
     def _build_playback_toggles(self):
         """Loop, Sound and Sync: built with the toolbar, placed on the

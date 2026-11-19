@@ -1,8 +1,25 @@
 # Changelog
 
-## 0.9.0 beta 18
+## 0.9.0 beta 21
 
-Everything since beta 7 (betas 8 to 17 were test builds and weren't published).
+Everything since beta 7 (betas 8 to 20 were test builds and weren't published).
+
+- **One Refresh.** The top bar has Refresh and Pause, nothing else to learn.
+  When the player doesn't match your Maya, press Refresh: it sends what's
+  different (viewport settings, things shown or hidden, values you changed
+  without a key) and says what it sent, or that nothing was different. If
+  the scene itself changed (a reference added or removed, something
+  imported, a constraint made), an orange note shows next to Refresh, and
+  Refresh asks before reloading the scene, in the player: **Reload scene**
+  or **Not now**. Push selected is gone; Reload scene is in the bgcache menu
+  and Re-render all in Help.
+- **The background Maya starts from its own clean settings** (Maya's
+  defaults plus your graphics and colour settings), not a copy of yours, so
+  your panels, layouts and start-up scripts never open in it. No splash, and
+  no full-screen window flashing up at Start.
+- **Show or remove things in the cache only:** bgcache menu > **Show
+  selected in the cache** / **Remove selected from the cache**, for looking
+  at a shot without something that's in your way, without hiding it in Maya.
 
 - **The whole shot in the player, your range first.** The player lays out
   the whole shot (Maya's outer range, the ends of the range slider) and your
@@ -37,7 +54,10 @@ Everything since beta 7 (betas 8 to 17 were test builds and weren't published).
 - **Fixed:** the player didn't open when a camera was already picked; the
   shot stayed long after you closed your range again; a clearer message when
   the open scene isn't in a shot folder.
-- For pipelines: `shot_range_env` in the profile gives the shot's cut from
+- A test tool, `tools/maya_torture.py`: runs bgcache through 34 things a
+  user might do, or do by accident, in a real Maya and writes a report.
+- For pipelines: `cache_assets` leaves your environment groups out of the
+  cache; `shot_range_env` in the profile gives the shot's cut from
   your launcher's environment variables; a `before_playblast` hook's returned
   lines are written to the background Maya's log. See PIPELINE_SETUP.md.
 

@@ -200,9 +200,50 @@ class SessionMixin(object):
         if self._status_changed():
             self._poll()
 
+    def _check_refresh_note(self):
+        """b21: your Maya says the scene has changed (the orange note next to
+        Refresh), or a Refresh found the scene needs reloading (the question)."""
+        path = self.p.get("refresh_note")
+        try:
+            mtime = os.path.getmtime(path)
+        except (OSError, TypeError):
+            return
+        if mtime == getattr(self, "_refresh_note_mtime", None):
+            return
+        self._refresh_note_mtime = mtime
+        st = common.read_json(path) or {}
+        note = st.get("note") or ""
+        self.refresh_note.setText(note)
+        self.refresh_note.setVisible(bool(note))
+        if self.b_refresh.property("stale") != bool(note):
+            self.b_refresh.setProperty("stale", bool(note))
+            self.b_refresh.style().unpolish(self.b_refresh)
+            self.b_refresh.style().polish(self.b_refresh)
+        ask = st.get("ask")
+        if ask and ask.get("changes"):
+            from bgcache import refreshing
+            title, text = refreshing.question(ask["changes"], ask.get("seconds"))
+            if not ask.get("sent"):
+                text = text.replace(" Everything else from this Refresh has been sent.", "")
+            self.ask_title.setText(title)
+            self.ask_text.setText(text)
+            self.reload_question.setVisible(True)
+        else:
+            self.reload_question.setVisible(False)
+
+    def answer_reload(self, yes):
+        """Reload scene / Not now on the question. Not now: the note next to
+        Refresh stays; nothing asks again until you press Refresh."""
+        self.reload_question.setVisible(False)
+        if yes:
+            self.reload_scene()
+        else:
+            self._flash_message("Not reloaded. Later: bgcache menu > Reload scene, or Refresh again", 5.0)
+
     def _poll(self):
         self._status_changed()          # note the version we're about to read
         self._check_config()
+        self._check_refresh_note()
         st = common.read_json(self.p["status"])
         if st:
             self.state = st.get("state", "")

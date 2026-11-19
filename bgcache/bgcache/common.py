@@ -114,6 +114,7 @@ def paths(session):
         "player_cmd": os.path.join(session, "player_cmd.json"),
         "maya_time": os.path.join(session, "maya_time.json"),
         "maya_range": os.path.join(session, "maya_range.json"),       # b8: your playback range
+        "refresh_note": os.path.join(session, "refresh_note.json"),   # b21: the scene changed / reload asked
         "player_close": os.path.join(session, "player_close.json"),   # b8: your Maya asks the player to close
         "status": os.path.join(session, "status.json"),
         "logs": log_dir(session),

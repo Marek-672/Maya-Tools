@@ -10,7 +10,7 @@ p = _source.source("player")
 bar = p[p.index("    def _build_ui(self):"):p.index("    def _build_playback_toggles(self):")]
 order = [bar.index(x) for x in ('_menu_word(row, "bgcache"', '_menu_word(row, "View"', '_menu_word(row, "Help"',
                                 'self.cam_button = _tool', 'self.b_draw = _tool', 'self.b_refresh = _tool',
-                                'self.b_reload = _tool', 'self.b_rerender = _tool', 'self.b_pause = _tool')]
+                                'self.b_pause = _tool')]
 assert order == sorted(order), order
 print("ok: toolbar order: bgcache, View, Help menus, then camera, Draw, Refresh, Reload scene, Re-render all, Pause")
 for gone in ('menu_button("Cache"', '"Scene"', 'MenuButtonPopup', 'QLabel("Camera")', '_tool("Scrub"',

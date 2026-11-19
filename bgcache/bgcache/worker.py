@@ -23,6 +23,7 @@ import maya.api.OpenMaya as om
 import maya.api.OpenMayaAnim as oma
 
 from bgcache import common
+from bgcache.worker_assets import AssetsWorkerMixin
 
 try:
     from PySide6 import QtCore, QtGui, QtWidgets
@@ -114,7 +115,7 @@ def _mobj(name):
     return sel.getDependNode(0)
 
 
-class Worker(object):
+class Worker(AssetsWorkerMixin):
     def __init__(self, cfg):
         self.cfg = cfg
         self.session = cfg["session"]
@@ -354,14 +355,27 @@ class Worker(object):
         log("shot now %d-%d (%d new frames)" % (self.first, self.last, len(new)))
 
     def _build_panel(self):
+        """The render view: its own window with one viewport. b19: made once
+        and kept through Reload scene (it was deleted and made again on every
+        reload; the background Maya crashed in Maya's window code in sessions
+        with reloads)."""
         w, h = self.cfg["width"], self.cfg["height"]
-        if cmds.window("bgcacheRenderWin", exists=True):
-            cmds.deleteUI("bgcacheRenderWin")
-        win = cmds.window("bgcacheRenderWin", title="bgcache render view",
-                          widthHeight=(w, h))
-        layout = cmds.paneLayout(configuration="single")
-        self.panel = cmds.modelPanel(parent=layout, menuBarVisible=False)
-        cmds.showWindow(win)
+        kept = False
+        try:
+            kept = bool(getattr(self, "panel", None)) and cmds.window("bgcacheRenderWin", exists=True) \
+                and cmds.modelPanel(self.panel, exists=True)
+        except Exception as error:
+            _ignored(error)
+        if kept:
+            log("render view kept (%s)" % self.panel)
+        else:
+            if cmds.window("bgcacheRenderWin", exists=True):
+                cmds.deleteUI("bgcacheRenderWin")
+            win = cmds.window("bgcacheRenderWin", title="bgcache render view",
+                              widthHeight=(w, h))
+            layout = cmds.paneLayout(configuration="single")
+            self.panel = cmds.modelPanel(parent=layout, menuBarVisible=False)
+            cmds.showWindow(win)
         self._apply_renderer()
         self._apply_display()
         self._reload_textures()
@@ -498,7 +512,9 @@ class Worker(object):
         # cache: the plug-in filters on in your viewport at Start, plus the
         # environment kinds (ENVIR_FILTER_HINTS), are switched off.
         self.plugin_shapes = bool(display.get("pluginShapes", True))
+        self.viewport_filters = dict(plugin_filters)        # b20: each plug-in kind as your viewport has it
         self.plugin_filters = self._envir_filters(plugin_filters)
+        self.apply_assets()                                 # b20: the environment groups hidden here
         self._apply_envirs()
         self._apply_plane_visibility()
 
@@ -576,9 +592,12 @@ class Worker(object):
         if not getattr(self, "panel", None):
             return
         shown = getattr(self, "envirs", False)
+        by_group = self.assets_by_group()       # b20: the environment is hidden by its groups, not by kind
+        seen = getattr(self, "viewport_filters", {})
         for name in self.plugin_filters:
             try:
-                cmds.modelEditor(self.panel, edit=True, pluginObjects=(name, shown))
+                cmds.modelEditor(self.panel, edit=True,
+                                 pluginObjects=(name, bool(seen.get(name)) if by_group else shown))
             except Exception as error:
                 log("plug-in display filter %s: %s" % (name, error))
         # The general "Plugin Shapes" switch must be on for any of them to draw;
@@ -588,6 +607,11 @@ class Worker(object):
                              pluginShapes=True if shown else getattr(self, "plugin_shapes", True))
         except Exception as error:
             log("plugin shapes: %s" % error)
+        if by_group:
+            log("plug-in shapes in the cache as in your viewport (%s)"
+                % (", ".join("%s %s" % (n, "on" if seen.get(n) else "off") for n in sorted(self.plugin_filters))
+                   or "no plug-in kinds"))
+            return
         log("envirs %s in the cache (%s)" % ("shown" if shown else "hidden",
                                              ", ".join(sorted(self.plugin_filters)) or "no plug-in shapes"))
 
@@ -698,9 +722,12 @@ class Worker(object):
         try:
             import maya.OpenMayaUI as omui
             main = shiboken.wrapInstance(int(omui.MQtUtil.mainWindow()), QtWidgets.QWidget)
+            main.setProperty("bgcacheStarted", True)     # b19: background_setup.py stops looking after it
             if not main.isMinimized():
                 main.showMinimized()
                 QtWidgets.QApplication.processEvents()   # take effect before the blocking load
+            if main.windowOpacity() < 1.0:               # see-through while it started
+                main.setWindowOpacity(1.0)
         except Exception as error:
             log("could not minimize the main window: %s" % error)
 
@@ -949,9 +976,14 @@ class Worker(object):
                     # One bad curve must not stop the others or the re-render.
                     self.last_error = traceback.format_exc()
                     log("ERROR rebuilding %s:\n%s" % (curve.get("curve"), self.last_error))
+        elif op == "assets":                # b20: Show selected / Remove selected in the cache
+            self.cfg["cache_assets"] = dict(self.cfg.get("cache_assets") or {},
+                                            shown=msg.get("shown") or [], removed=msg.get("removed") or [])
+            self.apply_assets()
         elif op == "statics":
             for plug, value in msg.get("values") or []:
-                self._set(plug, value)
+                if self.note_visibility(plug, value):       # b20: not what the cache hides
+                    self._set(plug, value)
             if msg.get("display"):           # Refresh: your viewport's settings now
                 self.cfg["display"] = msg["display"]
                 self.cfg["display_from"] = msg.get("display_from", "")

@@ -118,6 +118,7 @@ class SyncMixin(object):
         self._poll_player_cmd()
         self._follow_player_focus()
         self._send_moved_cameras()
+        self._send_shown_hidden()           # b20: assets you showed or hid
         st = common.read_json(common.paths(self.session)["player_time"])
         if st and st.get("ts", 0) > self._player_ts:
             self._player_ts = st["ts"]
@@ -172,6 +173,8 @@ class SyncMixin(object):
                 self.refresh_display()
             elif cmd == "push_selected":
                 self.push_selected()
+            elif cmd in ("cache_show_selected", "cache_remove_selected"):
+                self.cache_selected(cmd == "cache_show_selected")
             elif cmd == "reload":
                 self.reload_scene()
             elif cmd == "rerender":

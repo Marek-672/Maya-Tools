@@ -102,6 +102,12 @@ DEFAULT = {
     # render view is made: "module.function" (given the panel name, or no
     # arguments). Empty: nothing.
     "before_playblast": "",
+    # 0.9.0b20, what's drawn in the cache: what you see in your Maya, without
+    # the environment. {"root": "Assets", "environment": ["environ", ...]}:
+    # the groups directly under a group called <root> that are never drawn
+    # (hidden in the background Maya only). Unset: no plug-in shapes of the
+    # environment kinds (USD, gpuCache) are drawn, as before.
+    "cache_assets": {},
     # Updates, only when the artist asks (Help > Check for updates):
     # releases_folder: a studio folder of release zips (bgcache_<version>.zip),
     # or a list of folders tried in order; when set, the only place looked at.
