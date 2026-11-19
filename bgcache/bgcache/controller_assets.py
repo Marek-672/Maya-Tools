@@ -116,7 +116,7 @@ class AssetsMixin(object):
             return
         nodes = selected_transforms()
         if not nodes:
-            self._tell_player("Select something in your Maya first, then press %s" % ("Show" if show else "Hide"))
+            self._tell_player("Select something in your Maya first, then press %s" % ("Show selected" if show else "Hide selected"))
             return
         spec = self.cfg.get("cache_assets") or {}
         shown, removed = (assets.show if show else assets.remove)(spec.get("shown") or [], spec.get("removed") or [], nodes)

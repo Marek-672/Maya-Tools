@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.9.0 beta 23
+
+- The player's **Show** and **Hide** buttons are now **Show selected** and
+  **Hide selected**, so it's plain they act on what's selected in your Maya.
+
 ## 0.9.0 beta 22
 
 Everything since beta 7 (betas 8 to 21 were test builds and weren't published).
@@ -17,8 +22,8 @@ Everything since beta 7 (betas 8 to 21 were test builds and weren't published).
   defaults plus your graphics and colour settings), not a copy of yours, so
   your panels, layouts and start-up scripts never open in it. No splash, and
   no full-screen window flashing up at Start.
-- **Show and Hide.** Select something in your Maya and press **Hide** to
-  leave it out of the player (a character in your way), or **Show** to bring
+- **Show and Hide.** Select something in your Maya and press **Hide selected** to
+  leave it out of the player (a character in your way), or **Show selected** to bring
   it back. Only the player changes. An arrow beside the button lists what
   you've hidden, so nothing goes missing without an explanation; click a name
   to put it back. It's for the working session only: Stop forgets it.
